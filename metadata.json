@@ -1,0 +1,6 @@
+{
+  "name": "D&D Spellbook & Slot Tracker",
+  "description": "A mobile-optimized D&D 5e spell manager and spell slot tracker with JSON import, prepared spells filtering, upcasting, and dark mode theme.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
