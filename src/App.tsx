@@ -7,6 +7,7 @@ import {
   AlertCircle,
   BookOpen,
   CheckCircle2,
+  Download,
   Filter,
   Flame,
   Moon,
@@ -16,12 +17,13 @@ import {
   Upload,
   Zap,
 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AddSpellModal } from './components/AddSpellModal';
 import { CastSpellModal } from './components/CastSpellModal';
 import { CharacterModal } from './components/CharacterModal';
 import { FilterBar } from './components/FilterBar';
 import { ImportModal } from './components/ImportModal';
+import { InstallModal } from './components/InstallModal';
 import { LongRestModal } from './components/LongRestModal';
 import { Navbar } from './components/Navbar';
 import { SlotTracker } from './components/SlotTracker';
@@ -31,6 +33,11 @@ import { useSpellbook } from './hooks/useSpellbook';
 import { FilterOptions, Spell, SpellSlotState } from './types';
 import { calculateMaxPrepared } from './utils/spellSlotPresets';
 import { clean5eTags, formatSpellLevel, getSchoolInfo } from './utils/textParser';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
 export default function App() {
   const {
@@ -67,10 +74,41 @@ export default function App() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState<
-    'character' | 'import' | 'addSpell' | 'longRest' | null
+    'character' | 'import' | 'addSpell' | 'longRest' | 'install' | null
   >(null);
   const [detailSpell, setDetailSpell] = useState<Spell | null>(null);
   const [castingSpell, setCastingSpell] = useState<Spell | null>(null);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Check if running in standalone mode
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+    setIsStandalone(standalone);
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setIsStandalone(true);
+      setDeferredPrompt(null);
+      showToast('Spellbook successfully installed to your device!', 'success');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   // Toast Notification
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(
@@ -263,6 +301,8 @@ export default function App() {
         onOpenImport={() => setActiveModal('import')}
         onOpenAddSpell={() => setActiveModal('addSpell')}
         onOpenLongRest={() => setActiveModal('longRest')}
+        onOpenInstall={() => setActiveModal('install')}
+        isStandalone={isStandalone}
         totalPrepared={totalPreparedCount}
         maxPrepared={maxPreparedLimit}
       />
@@ -429,10 +469,10 @@ export default function App() {
       </main>
 
       {/* Floating Mobile Bottom Rest Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#121212]/95 backdrop-blur-md border-t border-zinc-800 p-2 sm:hidden flex items-center justify-between gap-2 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#121212]/95 backdrop-blur-md border-t border-zinc-800 p-2 sm:hidden flex items-center justify-between gap-1.5 shadow-2xl">
         <button
           onClick={() => setActiveModal('longRest')}
-          className="flex-1 py-2 px-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-[#c5a059]/40 text-[#c5a059] text-xs font-bold flex items-center justify-center gap-1.5"
+          className="flex-1 py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-[#c5a059]/40 text-[#c5a059] text-xs font-bold flex items-center justify-center gap-1"
         >
           <Moon className="w-3.5 h-3.5 text-[#c5a059]" />
           <span>Long Rest</span>
@@ -440,10 +480,24 @@ export default function App() {
 
         <button
           onClick={() => setActiveModal('import')}
-          className="py-2 px-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-semibold flex items-center gap-1"
+          className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-semibold flex items-center gap-1"
+          title="Import / Export"
         >
           <Upload className="w-3.5 h-3.5 text-zinc-400" />
           <span>Import</span>
+        </button>
+
+        <button
+          onClick={() => setActiveModal('install')}
+          className={`py-2 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1 ${
+            isStandalone
+              ? 'bg-zinc-900 border-zinc-800 text-zinc-500'
+              : 'bg-zinc-900 border-[#c5a059]/50 text-[#c5a059]'
+          }`}
+          title="Install App"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>{isStandalone ? 'App' : 'Install'}</span>
         </button>
 
         <button
@@ -456,6 +510,17 @@ export default function App() {
       </div>
 
       {/* Modals */}
+      {/* 0. PWA Install Modal */}
+      <InstallModal
+        isOpen={activeModal === 'install'}
+        onClose={() => setActiveModal(null)}
+        deferredPrompt={deferredPrompt}
+        onInstalled={() => {
+          setIsStandalone(true);
+          setDeferredPrompt(null);
+          showToast('App installed to your device!', 'success');
+        }}
+      />
       {/* 1. Character & Slot Preset Modal */}
       {activeModal === 'character' && (
         <CharacterModal

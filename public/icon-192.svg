@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1a17" />
+      <stop offset="50%" stop-color="#0e0d0c" />
+      <stop offset="100%" stop-color="#050505" />
+    </linearGradient>
+    <linearGradient id="goldGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5e0a3" />
+      <stop offset="35%" stop-color="#c5a059" />
+      <stop offset="70%" stop-color="#dfc384" />
+      <stop offset="100%" stop-color="#9a762c" />
+    </linearGradient>
+    <linearGradient id="rubyGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4d4d" />
+      <stop offset="100%" stop-color="#8b0000" />
+    </linearGradient>
+  </defs>
+
+  <rect width="192" height="192" rx="40" fill="url(#bgGrad192)" />
+  <rect x="6" y="6" width="180" height="180" rx="34" fill="none" stroke="url(#goldGrad192)" stroke-width="3" opacity="0.6" />
+
+  <g transform="translate(96, 96) scale(0.44)">
+    <path d="M-100,-70 C-50,-85 -20,-75 0,-60 C20,-75 50,-85 100,-70 L100,75 C50,60 20,70 0,85 C-20,70 -50,60 -100,75 Z" fill="#141414" stroke="url(#goldGrad192)" stroke-width="7" stroke-linejoin="round" />
+    <path d="M0,-60 L0,85" stroke="url(#goldGrad192)" stroke-width="6" stroke-linecap="round" />
+    
+    <!-- Left lines -->
+    <line x1="-80" y1="-30" x2="-25" y2="-30" stroke="url(#goldGrad192)" stroke-width="4" stroke-linecap="round" opacity="0.8" />
+    <line x1="-80" y1="-5" x2="-35" y2="-5" stroke="url(#goldGrad192)" stroke-width="4" stroke-linecap="round" opacity="0.8" />
+    <line x1="-80" y1="20" x2="-20" y2="20" stroke="url(#goldGrad192)" stroke-width="4" stroke-linecap="round" opacity="0.8" />
+
+    <!-- Right Star -->
+    <g transform="translate(50, 0)">
+      <path d="M0,-35 L8,-12 L32,-12 L12,4 L20,28 L0,12 L-20,28 L-12,4 L-32,-12 L-8,-12 Z" fill="url(#goldGrad192)" />
+      <circle cx="0" cy="0" r="7" fill="url(#rubyGrad192)" stroke="#f5e0a3" stroke-width="1.5" />
+    </g>
+
+    <path d="M0,80 L-10,130 L0,120 L10,130 L0,80" fill="url(#rubyGrad192)" stroke="url(#goldGrad192)" stroke-width="3" />
+  </g>
+</svg>

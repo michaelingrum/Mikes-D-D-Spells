@@ -1,4 +1,4 @@
-import { BookOpen, Moon, Plus, Sparkles, Upload, User } from 'lucide-react';
+import { BookOpen, Download, Moon, Plus, Sparkles, Smartphone, Upload, User } from 'lucide-react';
 import React from 'react';
 import { CharacterProfile, SpellSlotState } from '../types';
 import { getAbilityModifier } from '../utils/spellSlotPresets';
@@ -10,6 +10,8 @@ interface NavbarProps {
   onOpenImport: () => void;
   onOpenAddSpell: () => void;
   onOpenLongRest: () => void;
+  onOpenInstall: () => void;
+  isStandalone?: boolean;
   totalPrepared: number;
   maxPrepared: number | null;
 }
@@ -21,6 +23,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenImport,
   onOpenAddSpell,
   onOpenLongRest,
+  onOpenInstall,
+  isStandalone = false,
   totalPrepared,
   maxPrepared,
 }) => {
@@ -139,6 +143,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             title="Character and Slot Settings"
           >
             <User className="w-4 h-4" />
+          </button>
+
+          {/* PWA Install Button */}
+          <button
+            onClick={onOpenInstall}
+            className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-md border text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              isStandalone
+                ? 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                : 'bg-zinc-900 hover:bg-zinc-800 border-[#c5a059]/60 text-[#c5a059] hover:text-[#dfc384] shadow-sm'
+            }`}
+            title={isStandalone ? 'App is installed on your device' : 'Install App to Home Screen for Offline Access'}
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs">{isStandalone ? 'Installed' : 'Install'}</span>
           </button>
         </div>
       </div>
