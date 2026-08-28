@@ -9,35 +9,35 @@ import {
 import { getDefaultSpellSlotsForClass, getProficiencyBonus } from '../utils/spellSlotPresets';
 
 const STORAGE_KEYS = {
-  SPELLS: 'dnd_spellbook_spells_v2',
-  SLOTS: 'dnd_spellbook_slots_v2',
-  PROFILE: 'dnd_spellbook_profile_v2',
+  SPELLS: 'dnd_spellbook_spells_v3',
+  SLOTS: 'dnd_spellbook_slots_v3',
+  PROFILE: 'dnd_spellbook_profile_v3',
 };
 
 const DEFAULT_PROFILE: CharacterProfile = {
-  name: 'Mage Elyndor',
+  name: 'My Character',
   characterClass: 'Wizard',
-  level: 7,
+  level: 1,
   spellcastingAbility: 'INT',
-  abilityScoreValue: 18,
-  proficiencyBonus: 3,
+  abilityScoreValue: 16,
+  proficiencyBonus: 2,
 };
 
 export function useSpellbook() {
-  // Load spells
+  // Load spells - Starts empty/blank by default
   const [spells, setSpells] = useState<Spell[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SPELLS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       }
     } catch (e) {
       console.error('Failed to parse saved spells:', e);
     }
-    return DEFAULT_SPELLS_DATA;
+    return []; // Blank start
   });
 
   // Load character profile

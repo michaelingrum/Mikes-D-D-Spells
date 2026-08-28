@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronUp, Flame, Minus, Moon, Plus, RotateCcw, Sparkles } from 'lucide-react';
-import React, { useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Minus, Moon, Plus, RotateCcw, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { SpellSlotState } from '../types';
 
 interface SlotTrackerProps {
@@ -18,6 +18,28 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
   onConfigureSlots,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    if (!scrollerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollerRef.current;
+    setCanScrollLeft(scrollLeft > 4);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 4);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [slots, isExpanded]);
+
+  const scrollByAmount = (delta: number) => {
+    if (scrollerRef.current) {
+      scrollerRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+    }
+  };
 
   // Determine which spell slot levels have max > 0
   const activeLevels: number[] = [];
@@ -89,7 +111,24 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
 
         {/* Slot Grid / Horizontal Scroller */}
         {isExpanded ? (
-          <div className="flex items-stretch gap-2 overflow-x-auto pb-1 pt-1 scrollbar-thin scrollbar-thumb-zinc-700">
+          <div className="relative group/slots">
+            {canScrollLeft && (
+              <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-[#121212] via-[#121212]/90 to-transparent">
+                <button
+                  onClick={() => scrollByAmount(-180)}
+                  className="w-5 h-8 rounded bg-zinc-900 border border-zinc-700 text-[#c5a059] flex items-center justify-center shadow-md hover:bg-zinc-800 transition-colors"
+                  title="Scroll slots left"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <div
+              ref={scrollerRef}
+              onScroll={checkScroll}
+              className="flex items-stretch gap-2 overflow-x-auto pb-1 pt-1 overscroll-x-contain touch-pan-x scrollbar-thin scrollbar-thumb-zinc-700/60 hover:scrollbar-thumb-[#c5a059]/60"
+            >
             {/* Pact Magic Slots (if enabled) */}
             {hasPact && slots.pact && (
               <div className="flex-shrink-0 bg-[#18181b] border border-amber-800/40 rounded-lg p-2.5 min-w-[120px] shadow-sm flex flex-col justify-between">
@@ -220,6 +259,19 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
                   className="text-[#c5a059] underline hover:text-[#d4af37]"
                 >
                   Configure slots
+                </button>
+              </div>
+            )}
+            </div>
+
+            {canScrollRight && (
+              <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-[#121212] via-[#121212]/90 to-transparent">
+                <button
+                  onClick={() => scrollByAmount(180)}
+                  className="w-5 h-8 rounded bg-zinc-900 border border-zinc-700 text-[#c5a059] flex items-center justify-center shadow-md hover:bg-zinc-800 transition-colors animate-pulse hover:animate-none"
+                  title="Scroll slots right"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}

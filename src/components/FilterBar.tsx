@@ -1,5 +1,5 @@
-import { Filter, RotateCcw, Search, Sparkles, Star, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, Filter, RotateCcw, Search, Sparkles, Star, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FilterOptions, Spell } from '../types';
 import { SCHOOL_MAP } from '../utils/textParser';
 
@@ -9,6 +9,78 @@ interface FilterBarProps {
   onResetFilters: () => void;
   spells: Spell[];
 }
+
+/**
+ * Reusable wrapper that adds visual fade masks, scroll arrows, and clear visual cues for horizontal scrolling
+ */
+const ScrollableRow: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className = '',
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    if (!containerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+    setCanScrollLeft(scrollLeft > 4);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 4);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [children]);
+
+  const scrollByAmount = (delta: number) => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div className={`relative group/row ${className}`}>
+      {/* Left Scroll Button / Fade Indicator */}
+      {canScrollLeft && (
+        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-[#0f0f10] via-[#0f0f10]/90 to-transparent">
+          <button
+            onClick={() => scrollByAmount(-180)}
+            className="w-5 h-7 rounded bg-zinc-900/90 border border-zinc-700 text-[#c5a059] flex items-center justify-center shadow-md hover:bg-zinc-800 transition-colors"
+            title="Scroll left"
+            aria-label="Scroll filters left"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Horizontally Scrollable Content with touch pan and styled thin scrollbar */}
+      <div
+        ref={containerRef}
+        onScroll={checkScroll}
+        className="flex items-center gap-1.5 overflow-x-auto py-1 overscroll-x-contain touch-pan-x scrollbar-thin scrollbar-thumb-zinc-700/60 hover:scrollbar-thumb-[#c5a059]/60 scrollbar-track-transparent"
+      >
+        {children}
+      </div>
+
+      {/* Right Scroll Button / Fade Indicator */}
+      {canScrollRight && (
+        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-[#0f0f10] via-[#0f0f10]/90 to-transparent">
+          <button
+            onClick={() => scrollByAmount(180)}
+            className="w-5 h-7 rounded bg-zinc-900/90 border border-zinc-700 text-[#c5a059] flex items-center justify-center shadow-md hover:bg-zinc-800 transition-colors animate-pulse hover:animate-none"
+            title="Scroll right"
+            aria-label="Scroll filters right"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const FilterBar: React.FC<FilterBarProps> = ({
   filters,
@@ -47,8 +119,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     filters.characterClass !== 'all';
 
   return (
-    <div className="bg-[#0f0f10] border-b border-zinc-800 px-3 py-3 sm:px-6 space-y-2.5">
-      <div className="max-w-7xl mx-auto space-y-2.5">
+    <div className="bg-[#0f0f10] border-b border-zinc-800 px-3 py-2.5 sm:px-6 space-y-2">
+      <div className="max-w-7xl mx-auto space-y-2">
         {/* Search Bar & Preparation Pills */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {/* Search Input */}
@@ -98,8 +170,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
         </div>
 
-        {/* Primary Filter Tabs: Preparation Status */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {/* Primary Filter Tabs: Preparation Status (Scrollable with visual indicators) */}
+        <ScrollableRow>
           <button
             onClick={() => onFilterChange({ preparation: 'all' })}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
@@ -194,10 +266,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               {prepCounts.rituals}
             </span>
           </button>
-        </div>
+        </ScrollableRow>
 
-        {/* Level Filter Tabs (0 to 9) */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {/* Level Filter Tabs (0 to 9) (Scrollable with visual indicators) */}
+        <ScrollableRow>
           <button
             onClick={() => onFilterChange({ level: 'all' })}
             className={`flex-shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
@@ -241,7 +313,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               </button>
             );
           })}
-        </div>
+        </ScrollableRow>
 
         {/* Advanced Filters (School, Casting Time, Sort) */}
         {showAdvanced && (

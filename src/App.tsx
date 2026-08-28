@@ -436,10 +436,48 @@ export default function App() {
               );
             })}
           </div>
+        ) : spells.length === 0 ? (
+          /* Blank Spellbook Initial State */
+          <div className="text-center py-16 px-4 bg-[#121212] border border-zinc-800 rounded-2xl max-w-lg mx-auto space-y-4 shadow-xl">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-zinc-900 border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shadow-lg shadow-black">
+              <BookOpen className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-serif font-bold text-zinc-100">Your Spellbook is Blank</h3>
+              <p className="text-xs text-zinc-400 mt-1.5 max-w-sm mx-auto leading-relaxed">
+                Start building your spell list by importing your 5e spells (JSON or 5etools format) or creating custom homebrew spells.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+              <button
+                onClick={() => setActiveModal('import')}
+                className="px-4 py-2.5 rounded-lg bg-[#c5a059] hover:bg-[#d4af37] text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-lg active:scale-95"
+              >
+                <Upload className="w-3.5 h-3.5 fill-black text-black" />
+                <span>Import Spells (JSON)</span>
+              </button>
+              <button
+                onClick={() => setActiveModal('addSpell')}
+                className="px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-[#c5a059] text-xs font-semibold flex items-center gap-1.5 transition-all border border-[#c5a059]/40"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Custom Spell</span>
+              </button>
+              <button
+                onClick={() => {
+                  resetToDefaultSample();
+                  showToast('Loaded 5e starter spells!', 'success');
+                }}
+                className="w-full text-zinc-500 hover:text-zinc-300 text-[11px] underline underline-offset-4 pt-1 transition-colors"
+              >
+                or load 5e sample spells to preview
+              </button>
+            </div>
+          </div>
         ) : (
-          /* Empty State */
+          /* Filtered Out Empty State */
           <div className="text-center py-16 px-4 bg-[#121212] border border-zinc-800 rounded-2xl max-w-lg mx-auto space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-zinc-900 border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shadow-lg">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shadow-lg">
               <BookOpen className="w-7 h-7" />
             </div>
             <div>
@@ -461,7 +499,7 @@ export default function App() {
                 className="px-4 py-2 rounded-lg bg-[#c5a059] hover:bg-[#d4af37] text-black text-xs font-bold flex items-center gap-1.5 transition-colors shadow-lg"
               >
                 <Upload className="w-3.5 h-3.5 fill-black text-black" />
-                <span>Import JSON</span>
+                <span>Import Spells</span>
               </button>
             </div>
           </div>

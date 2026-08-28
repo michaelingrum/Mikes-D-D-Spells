@@ -51,22 +51,22 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-30 bg-[#161616] border-b border-zinc-800 px-3 py-3 sm:px-6 shadow-2xl">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: App Title & Character Quick Info */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-zinc-900 border border-[#c5a059]/40 flex items-center justify-center shadow-lg shadow-black">
-            <BookOpen className="w-5 h-5 text-[#c5a059]" />
-            <span className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-[#c5a059] border border-[#161616]" />
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div className="relative flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-zinc-900 border border-[#c5a059]/40 flex items-center justify-center shadow-lg shadow-black">
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#c5a059]" />
+            <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#c5a059] border border-[#161616]" />
           </div>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <button
               onClick={onOpenCharacter}
-              className="text-left group block focus:outline-none"
+              className="text-left group block focus:outline-none max-w-full"
             >
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-base sm:text-xl font-serif text-[#c5a059] tracking-wide group-hover:text-[#d4af37] transition-colors truncate">
-                  {profile.name || 'Thalric Moonwhisper'}
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h1 className="text-sm sm:text-lg md:text-xl font-serif text-[#c5a059] tracking-wide group-hover:text-[#d4af37] transition-colors truncate">
+                  {profile.name || 'My Character'}
                 </h1>
-                <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono hidden sm:inline">
+                <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono hidden sm:inline flex-shrink-0">
                   5e
                 </span>
               </div>
@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Stat Badges (DC, Attack, Prepared Count) */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
           {/* Spell Save DC */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm">
             <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Save DC</span>
@@ -102,38 +102,38 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Long Rest Button in signature crimson aesthetic */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {/* Long Rest Button in signature crimson aesthetic - Compact on mobile */}
           <button
             onClick={onOpenLongRest}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#8b0000] hover:bg-[#a31a1a] border border-[#a31a1a] text-white text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold transition-all active:scale-95 shadow-md shadow-red-950/40"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded bg-[#8b0000] hover:bg-[#a31a1a] border border-[#a31a1a] text-white text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold transition-all active:scale-95 shadow-md shadow-red-950/40"
             title="Take a Long Rest to restore all spell slots"
           >
-            <Moon className="w-3.5 h-3.5 text-red-200" />
-            <span>Long Rest</span>
-            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/40 text-red-200 ml-0.5">
+            <Moon className="w-3.5 h-3.5 text-red-200 flex-shrink-0" />
+            <span className="hidden sm:inline">Long Rest</span>
+            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/40 text-red-200">
               {remainingSlots}/{maxSlots}
             </span>
           </button>
 
-          {/* Import JSON */}
+          {/* Import JSON - Hidden on mobile because it is in bottom bar */}
           <button
             onClick={onOpenImport}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5"
+            className="hidden sm:flex p-1.5 sm:px-2.5 sm:py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs sm:text-sm font-medium transition-colors items-center gap-1.5"
             title="Import Spells from JSON"
           >
             <Upload className="w-4 h-4 text-[#c5a059]" />
-            <span className="hidden sm:inline text-xs">Import</span>
+            <span className="text-xs">Import</span>
           </button>
 
-          {/* Add Spell */}
+          {/* Add Spell - Hidden on mobile because it is in bottom bar */}
           <button
             onClick={onOpenAddSpell}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-[#c5a059]/40 text-[#c5a059] hover:text-[#d4af37] text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5"
+            className="hidden sm:flex p-1.5 sm:px-2.5 sm:py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-[#c5a059]/40 text-[#c5a059] hover:text-[#d4af37] text-xs sm:text-sm font-medium transition-colors items-center gap-1.5"
             title="Add Custom Spell"
           >
             <Plus className="w-4 h-4 text-[#c5a059]" />
-            <span className="hidden sm:inline text-xs">Add</span>
+            <span className="text-xs">Add</span>
           </button>
 
           {/* Character Config */}
@@ -148,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* PWA Install Button */}
           <button
             onClick={onOpenInstall}
-            className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-md border text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`hidden sm:flex p-1.5 sm:px-2.5 sm:py-1.5 rounded-md border text-xs font-semibold transition-all items-center gap-1.5 ${
               isStandalone
                 ? 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
                 : 'bg-zinc-900 hover:bg-zinc-800 border-[#c5a059]/60 text-[#c5a059] hover:text-[#dfc384] shadow-sm'
@@ -156,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             title={isStandalone ? 'App is installed on your device' : 'Install App to Home Screen for Offline Access'}
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline text-xs">{isStandalone ? 'Installed' : 'Install'}</span>
+            <span className="text-xs">{isStandalone ? 'Installed' : 'Install'}</span>
           </button>
         </div>
       </div>
