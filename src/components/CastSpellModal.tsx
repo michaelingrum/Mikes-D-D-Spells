@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
-import { AlertCircle, Check, Flame, Sparkles, X, Zap } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Check, Eye, Flame, Sparkles, X, Zap } from 'lucide-react';
 import React, { useState } from 'react';
-import { Spell, SpellSlotState } from '../types';
+import { ActiveConcentration, Spell, SpellSlotState } from '../types';
 import { clean5eTags, formatSpellLevel, getSchoolInfo } from '../utils/textParser';
 
 interface CastSpellModalProps {
@@ -10,6 +10,7 @@ interface CastSpellModalProps {
   onClose: () => void;
   onCast: (spell: Spell, slotLevel: number) => { success: boolean; message: string };
   onCastPact: (spell: Spell) => { success: boolean; message: string };
+  activeConcentration?: ActiveConcentration | null;
 }
 
 export const CastSpellModal: React.FC<CastSpellModalProps> = ({
@@ -18,11 +19,13 @@ export const CastSpellModal: React.FC<CastSpellModalProps> = ({
   onClose,
   onCast,
   onCastPact,
+  activeConcentration,
 }) => {
   if (!spell) return null;
 
   const isCantrip = spell.level === 0;
   const school = getSchoolInfo(spell.school);
+  const isConcentration = Boolean(spell.duration?.some((d) => d.concentration));
 
   // Available leveled slots from spell.level up to 9
   const availableSlotLevels: Array<{ level: number; current: number; max: number }> = [];
@@ -139,6 +142,33 @@ export const CastSpellModal: React.FC<CastSpellModalProps> = ({
 
         {/* Content */}
         <div className="space-y-4 my-3">
+          {/* Concentration Warning / Notice Banner */}
+          {isConcentration && (
+            <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+              activeConcentration && activeConcentration.spellId !== spell.id
+                ? 'bg-rose-950/40 border-rose-700/60 text-rose-200'
+                : 'bg-amber-950/30 border-amber-600/50 text-amber-200'
+            }`}>
+              {activeConcentration && activeConcentration.spellId !== spell.id ? (
+                <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+              ) : (
+                <Eye className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="space-y-0.5">
+                <span className="font-bold block uppercase tracking-wider text-[10px]">
+                  {activeConcentration && activeConcentration.spellId !== spell.id
+                    ? 'Replaces Concentration'
+                    : 'Concentration Spell'}
+                </span>
+                <p className="text-zinc-300">
+                  {activeConcentration && activeConcentration.spellId !== spell.id
+                    ? `Casting this will break and end your active concentration on "${activeConcentration.spellName}".`
+                    : 'This spell requires maintaining concentration. Casting another concentration spell will end it.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {isCantrip ? (
             <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-center space-y-1">
               <p className="text-sm font-semibold text-[#c5a059]">Cantrip (No Slot Required)</p>

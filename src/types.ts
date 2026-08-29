@@ -148,6 +148,16 @@ export interface CharacterProfile {
   notes?: string;
 }
 
+export interface ActiveConcentration {
+  spellId: string;
+  spellName: string;
+  level: number;
+  school: SchoolCode;
+  castAtLevel?: number;
+  startedAt: number; // timestamp
+  durationText?: string;
+}
+
 export interface FilterOptions {
   searchQuery: string;
   level: number | 'all' | 'cantrips' | 'leveled';

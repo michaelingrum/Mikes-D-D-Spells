@@ -3,6 +3,7 @@ import {
   Check,
   Clock,
   Compass,
+  Eye,
   FileText,
   Flame,
   Globe,
@@ -37,6 +38,9 @@ interface SpellDetailModalProps {
   onDeleteSpell?: (spellId: string) => void;
   spellSaveDC?: number;
   spellAttackMod?: number;
+  isConcentrating?: boolean;
+  onStartConcentration?: (spell: Spell) => void;
+  onStopConcentration?: () => void;
 }
 
 export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
@@ -49,6 +53,9 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
   onDeleteSpell,
   spellSaveDC,
   spellAttackMod,
+  isConcentrating,
+  onStartConcentration,
+  onStopConcentration,
 }) => {
   if (!spell) return null;
 
@@ -98,12 +105,17 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
                   RITUAL
                 </span>
               )}
-              {durationInfo.isConcentration && (
+              {isConcentrating ? (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-500 text-black flex items-center gap-1 animate-pulse shadow-md">
+                  <Eye className="w-3.5 h-3.5" />
+                  ACTIVE CONCENTRATION
+                </span>
+              ) : durationInfo.isConcentration ? (
                 <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-950 border border-rose-700/60 text-rose-300 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
                   CONCENTRATION
                 </span>
-              )}
+              ) : null}
             </div>
 
             <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#c5a059] tracking-tight flex items-center gap-2">
@@ -330,8 +342,30 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
             </div>
           )}
 
-          {/* Cast CTA Button & Delete (if custom) */}
-          <div className="flex items-center gap-2 ml-auto">
+          {/* Cast CTA Button & Concentration & Delete (if custom) */}
+          <div className="flex items-center gap-2 ml-auto flex-wrap sm:flex-nowrap">
+            {durationInfo.isConcentration && (
+              isConcentrating && onStopConcentration ? (
+                <button
+                  onClick={onStopConcentration}
+                  className="px-3 py-2 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-800/60 text-rose-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  title="Drop concentration on this spell"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Stop Focus</span>
+                </button>
+              ) : onStartConcentration ? (
+                <button
+                  onClick={() => onStartConcentration(spell)}
+                  className="px-3 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  title="Set active concentration without slot cast"
+                >
+                  <Eye className="w-4 h-4 text-amber-400" />
+                  <span>Focus</span>
+                </button>
+              ) : null
+            )}
+
             {spell.isCustom && onDeleteSpell && (
               <button
                 onClick={() => {

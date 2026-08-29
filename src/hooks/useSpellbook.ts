@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_SPELLS_DATA } from '../data/defaultSpells';
 import {
+  ActiveConcentration,
   CharacterProfile,
   PreparationStatus,
   Spell,
   SpellSlotState
 } from '../types';
 import { getDefaultSpellSlotsForClass, getProficiencyBonus } from '../utils/spellSlotPresets';
+import { formatDuration } from '../utils/textParser';
 
 const STORAGE_KEYS = {
   SPELLS: 'dnd_spellbook_spells_v3',
   SLOTS: 'dnd_spellbook_slots_v3',
   PROFILE: 'dnd_spellbook_profile_v3',
+  CONCENTRATION: 'dnd_spellbook_concentration_v1',
 };
 
 const DEFAULT_PROFILE: CharacterProfile = {
@@ -68,6 +71,19 @@ export function useSpellbook() {
     return getDefaultSpellSlotsForClass(DEFAULT_PROFILE.characterClass, DEFAULT_PROFILE.level);
   });
 
+  // Load Active Concentration
+  const [activeConcentration, setActiveConcentration] = useState<ActiveConcentration | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.CONCENTRATION);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to parse saved concentration:', e);
+    }
+    return null;
+  });
+
   // Persist to localStorage
   useEffect(() => {
     try {
@@ -92,6 +108,40 @@ export function useSpellbook() {
       console.error('Failed to save slots:', e);
     }
   }, [slots]);
+
+  useEffect(() => {
+    try {
+      if (activeConcentration) {
+        localStorage.setItem(STORAGE_KEYS.CONCENTRATION, JSON.stringify(activeConcentration));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.CONCENTRATION);
+      }
+    } catch (e) {
+      console.error('Failed to save concentration:', e);
+    }
+  }, [activeConcentration]);
+
+  // Concentration Helpers
+  const isConcentrationSpell = (spell: Spell): boolean => {
+    return Boolean(spell.duration?.some((d) => d.concentration));
+  };
+
+  const startConcentration = (spell: Spell, castAtLevel?: number) => {
+    const dur = formatDuration(spell.duration);
+    setActiveConcentration({
+      spellId: spell.id,
+      spellName: spell.name,
+      level: spell.level,
+      school: spell.school,
+      castAtLevel: castAtLevel ?? spell.level,
+      startedAt: Date.now(),
+      durationText: dur.text,
+    });
+  };
+
+  const stopConcentration = () => {
+    setActiveConcentration(null);
+  };
 
   // Actions
   const togglePreparation = (spellId: string) => {
@@ -122,9 +172,25 @@ export function useSpellbook() {
   };
 
   // Consume a spell slot
-  const castSpell = (spell: Spell, slotLevel: number): { success: boolean; message: string } => {
+  const castSpell = (spell: Spell, slotLevel: number): { success: boolean; message: string; brokeConcentration?: string } => {
+    const isConc = isConcentrationSpell(spell);
+    const previousConcName = activeConcentration ? activeConcentration.spellName : null;
+
     if (slotLevel === 0 || spell.level === 0) {
-      return { success: true, message: `Cast ${spell.name} (Cantrip, no slot used)` };
+      if (isConc) {
+        startConcentration(spell, 0);
+      }
+      let msg = `Cast ${spell.name} (Cantrip, no slot used)`;
+      if (isConc) {
+        msg = previousConcName && previousConcName !== spell.name
+          ? `Cast ${spell.name}! Dropped concentration on ${previousConcName}, now concentrating on ${spell.name}.`
+          : `Cast ${spell.name}! Now concentrating on ${spell.name}.`;
+      }
+      return {
+        success: true,
+        message: msg,
+        brokeConcentration: isConc && previousConcName ? previousConcName : undefined,
+      };
     }
 
     // Check if slot level is valid
@@ -149,20 +215,38 @@ export function useSpellbook() {
       };
     });
 
+    if (isConc) {
+      startConcentration(spell, slotLevel);
+    }
+
     const isUpcast = slotLevel > spell.level;
+    let msg = isUpcast
+      ? `Cast ${spell.name} upcast at Level ${slotLevel}! (1 slot used)`
+      : `Cast ${spell.name} at Level ${slotLevel}! (1 slot used)`;
+
+    if (isConc) {
+      if (previousConcName && previousConcName !== spell.name) {
+        msg += ` (Dropped concentration on ${previousConcName}, now concentrating on ${spell.name})`;
+      } else {
+        msg += ` (Concentrating on ${spell.name})`;
+      }
+    }
+
     return {
       success: true,
-      message: isUpcast
-        ? `Cast ${spell.name} upcast at Level ${slotLevel}! (1 slot used)`
-        : `Cast ${spell.name} at Level ${slotLevel}! (1 slot used)`,
+      message: msg,
+      brokeConcentration: isConc && previousConcName ? previousConcName : undefined,
     };
   };
 
   // Cast pact slot
-  const castPactSlot = (spell: Spell): { success: boolean; message: string } => {
+  const castPactSlot = (spell: Spell): { success: boolean; message: string; brokeConcentration?: string } => {
     if (!slots.pact || slots.pact.current <= 0) {
       return { success: false, message: 'No remaining Pact Magic slots!' };
     }
+
+    const isConc = isConcentrationSpell(spell);
+    const previousConcName = activeConcentration ? activeConcentration.spellName : null;
 
     setSlots((prev) => {
       if (!prev.pact) return prev;
@@ -175,9 +259,23 @@ export function useSpellbook() {
       };
     });
 
+    if (isConc) {
+      startConcentration(spell, slots.pact.level);
+    }
+
+    let msg = `Cast ${spell.name} using Level ${slots.pact.level} Pact Slot!`;
+    if (isConc) {
+      if (previousConcName && previousConcName !== spell.name) {
+        msg += ` (Dropped concentration on ${previousConcName}, now concentrating on ${spell.name})`;
+      } else {
+        msg += ` (Concentrating on ${spell.name})`;
+      }
+    }
+
     return {
       success: true,
-      message: `Cast ${spell.name} using Level ${slots.pact.level} Pact Slot!`,
+      message: msg,
+      brokeConcentration: isConc && previousConcName ? previousConcName : undefined,
     };
   };
 
@@ -257,6 +355,8 @@ export function useSpellbook() {
       }
       return next;
     });
+    // Concentration ends on long rest
+    setActiveConcentration(null);
   };
 
   // Short Rest
@@ -308,11 +408,17 @@ export function useSpellbook() {
     setSpells((prev) =>
       prev.map((s) => (s.id === spellId ? { ...s, ...updates } : s))
     );
+    if (activeConcentration && activeConcentration.spellId === spellId && updates.name) {
+      setActiveConcentration((prev) => prev ? { ...prev, spellName: updates.name! } : null);
+    }
   };
 
   // Delete spell
   const deleteSpell = (spellId: string) => {
     setSpells((prev) => prev.filter((s) => s.id !== spellId));
+    if (activeConcentration && activeConcentration.spellId === spellId) {
+      setActiveConcentration(null);
+    }
   };
 
   // Import spells from JSON
@@ -414,6 +520,9 @@ export function useSpellbook() {
     spells,
     slots,
     profile,
+    activeConcentration,
+    startConcentration,
+    stopConcentration,
     togglePreparation,
     setPreparationStatus,
     toggleFavorite,

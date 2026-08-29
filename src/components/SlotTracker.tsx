@@ -1,6 +1,20 @@
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Minus, Moon, Plus, RotateCcw, Sparkles } from 'lucide-react';
+import {
+  Brain,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Eye,
+  Flame,
+  Minus,
+  Moon,
+  Plus,
+  RotateCcw,
+  Sparkles,
+  X
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { SpellSlotState } from '../types';
+import { ActiveConcentration, SpellSlotState } from '../types';
 
 interface SlotTrackerProps {
   slots: SpellSlotState;
@@ -8,6 +22,9 @@ interface SlotTrackerProps {
   onTakeLongRest: () => void;
   onTakeShortRest: () => void;
   onConfigureSlots: () => void;
+  activeConcentration?: ActiveConcentration | null;
+  onStopConcentration?: () => void;
+  onSelectConcentrationSpell?: (spellId: string) => void;
 }
 
 export const SlotTracker: React.FC<SlotTrackerProps> = ({
@@ -16,6 +33,9 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
   onTakeLongRest,
   onTakeShortRest,
   onConfigureSlots,
+  activeConcentration,
+  onStopConcentration,
+  onSelectConcentrationSpell,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -65,8 +85,8 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
     <div className="bg-[#121212] border-b border-zinc-800 px-3 py-2.5 sm:px-6 transition-all">
       <div className="max-w-7xl mx-auto">
         {/* Header with Slot Summary and Controls */}
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="flex items-center gap-1.5 text-xs font-serif uppercase tracking-widest text-[#c5a059] font-bold">
               <Sparkles className="w-3.5 h-3.5 text-[#c5a059]" />
               Spell Slots
@@ -74,14 +94,50 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
             <span className="text-xs text-zinc-400 font-mono bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
               <strong className="text-[#c5a059]">{totalRemaining}</strong> / {totalMax} left
             </span>
+
+            {/* Concentration Badge in Header */}
+            {activeConcentration ? (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-950/60 border border-amber-500/50 text-amber-200 text-xs shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 font-mono">Conc:</span>
+                <button
+                  onClick={() => onSelectConcentrationSpell?.(activeConcentration.spellId)}
+                  className="font-bold text-amber-200 hover:text-[#dfc384] hover:underline cursor-pointer max-w-[120px] sm:max-w-[180px] truncate"
+                  title="Click to view concentrated spell details"
+                >
+                  {activeConcentration.spellName}
+                </button>
+                {activeConcentration.level > 0 && (
+                  <span className="text-[10px] text-zinc-400 font-mono">
+                    (Lv{activeConcentration.castAtLevel ?? activeConcentration.level})
+                  </span>
+                )}
+                {onStopConcentration && (
+                  <button
+                    onClick={onStopConcentration}
+                    className="p-0.5 rounded hover:bg-rose-900/80 text-zinc-400 hover:text-rose-200 transition-colors"
+                    title="Stop concentration (Drops spell)"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-900/60 border border-zinc-800/80 text-zinc-500 text-[11px] font-mono">
+                <span>Conc: None</span>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* Quick Long Rest trigger */}
             <button
               onClick={onTakeLongRest}
               className="text-[11px] px-2 py-1 rounded bg-[#8b0000]/80 hover:bg-[#8b0000] text-red-100 border border-[#a31a1a]/60 flex items-center gap-1 transition-colors"
-              title="Restore all spell slots"
+              title="Restore all spell slots (Ends concentration)"
             >
               <Moon className="w-3 h-3 text-red-200" />
               <span>Restore All</span>
@@ -129,6 +185,58 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
               onScroll={checkScroll}
               className="flex items-stretch gap-2 overflow-x-auto pb-1 pt-1 overscroll-x-contain touch-pan-x scrollbar-thin scrollbar-thumb-zinc-700/60 hover:scrollbar-thumb-[#c5a059]/60"
             >
+            {/* Concentration Card in Tracker Strip */}
+            <div
+              className={`flex-shrink-0 rounded-lg p-2.5 min-w-[135px] max-w-[150px] shadow-sm flex flex-col justify-between border transition-all ${
+                activeConcentration
+                  ? 'bg-[#181309] border-[#c5a059]/60 shadow-[0_0_12px_rgba(197,160,89,0.12)]'
+                  : 'bg-[#161616] border-zinc-800/80 opacity-75 hover:opacity-100'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span
+                  className={`text-[10px] font-bold tracking-wider font-mono uppercase flex items-center gap-1 ${
+                    activeConcentration ? 'text-[#c5a059]' : 'text-zinc-500'
+                  }`}
+                >
+                  <Eye className="w-3 h-3" />
+                  Concentration
+                </span>
+                {activeConcentration && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </div>
+
+              {activeConcentration ? (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => onSelectConcentrationSpell?.(activeConcentration.spellId)}
+                    className="text-left block text-xs font-bold text-amber-200 hover:text-[#dfc384] truncate w-full"
+                    title="View concentrated spell details"
+                  >
+                    {activeConcentration.spellName}
+                  </button>
+                  <div className="text-[10px] text-zinc-400 font-mono truncate">
+                    {activeConcentration.durationText || 'Active'}
+                  </div>
+                  {onStopConcentration && (
+                    <button
+                      onClick={onStopConcentration}
+                      className="w-full mt-1 py-1 px-1.5 rounded bg-rose-950/80 hover:bg-rose-900 border border-rose-800/60 text-rose-200 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                      title="Stop concentration"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>Stop Conc</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="py-2.5 text-center text-[10px] text-zinc-500 italic font-mono">
+                  No active spell
+                </div>
+              )}
+            </div>
+
             {/* Pact Magic Slots (if enabled) */}
             {hasPact && slots.pact && (
               <div className="flex-shrink-0 bg-[#18181b] border border-amber-800/40 rounded-lg p-2.5 min-w-[120px] shadow-sm flex flex-col justify-between">
@@ -279,6 +387,27 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
         ) : (
           /* Compact Mini Slot Bar when Collapsed */
           <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+            {activeConcentration && (
+              <div className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-0.5 rounded bg-amber-950/70 border border-amber-500/60 text-amber-300 flex-shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <button
+                  onClick={() => onSelectConcentrationSpell?.(activeConcentration.spellId)}
+                  className="font-bold hover:underline cursor-pointer"
+                  title="View spell details"
+                >
+                  Conc: {activeConcentration.spellName}
+                </button>
+                {onStopConcentration && (
+                  <button
+                    onClick={onStopConcentration}
+                    className="p-0.5 rounded hover:bg-rose-900/80 text-zinc-400 hover:text-rose-200 transition-colors"
+                    title="Stop concentration"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            )}
             {activeLevels.map((lvl) => {
               const s = slots[lvl as keyof SpellSlotState] as { max: number; current: number };
               return (

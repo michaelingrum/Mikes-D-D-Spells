@@ -44,6 +44,9 @@ export default function App() {
     spells,
     slots,
     profile,
+    activeConcentration,
+    startConcentration,
+    stopConcentration,
     togglePreparation,
     setPreparationStatus,
     toggleFavorite,
@@ -333,6 +336,17 @@ export default function App() {
           showToast('Short Rest taken! Pact slots replenished.', 'success');
         }}
         onConfigureSlots={() => setActiveModal('character')}
+        activeConcentration={activeConcentration}
+        onStopConcentration={() => {
+          stopConcentration();
+          showToast('Concentration ended.', 'info');
+        }}
+        onSelectConcentrationSpell={(spellId) => {
+          const found = spells.find((s) => s.id === spellId);
+          if (found) {
+            setDetailSpell(found);
+          }
+        }}
       />
 
       {/* Filter and Search Bar */}
@@ -435,6 +449,11 @@ export default function App() {
                         onSetPrep={(id, status) => setPreparationStatus(id, status)}
                         onToggleFavorite={(id) => toggleFavorite(id)}
                         onQuickCast={handleQuickCast}
+                        isConcentrating={activeConcentration?.spellId === spell.id}
+                        onStopConcentration={() => {
+                          stopConcentration();
+                          showToast('Concentration ended.', 'info');
+                        }}
                         hasSlotsAvailable={
                           spell.level === 0 ||
                           Boolean(
@@ -634,6 +653,7 @@ export default function App() {
           spell={castingSpell}
           slots={slots}
           onClose={() => setCastingSpell(null)}
+          activeConcentration={activeConcentration}
           onCast={(spell, slotLevel) => {
             const res = castSpell(spell, slotLevel);
             if (res.success) {
@@ -669,6 +689,15 @@ export default function App() {
           }}
           spellSaveDC={spellSaveDC}
           spellAttackMod={spellAttackMod}
+          isConcentrating={activeConcentration?.spellId === detailSpell.id}
+          onStartConcentration={(spell) => {
+            startConcentration(spell);
+            showToast(`Now concentrating on ${spell.name}`, 'info');
+          }}
+          onStopConcentration={() => {
+            stopConcentration();
+            showToast('Concentration ended.', 'info');
+          }}
         />
       )}
     </div>
