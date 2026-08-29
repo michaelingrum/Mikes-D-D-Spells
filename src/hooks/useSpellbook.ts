@@ -21,6 +21,8 @@ const DEFAULT_PROFILE: CharacterProfile = {
   spellcastingAbility: 'INT',
   abilityScoreValue: 16,
   proficiencyBonus: 2,
+  dcBonus: 0,
+  attackBonus: 0,
 };
 
 export function useSpellbook() {

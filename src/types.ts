@@ -143,6 +143,8 @@ export interface CharacterProfile {
   abilityScoreValue: number; // e.g. 18 (+4)
   proficiencyBonus: number; // e.g. +3
   customPreparedMax?: number;
+  dcBonus?: number; // e.g. +1, +2, +3 from Arcane Grimoire, Robe of the Archmagi, etc.
+  attackBonus?: number; // e.g. +1, +2, +3 from Wand of the War Mage, etc.
   notes?: string;
 }
 

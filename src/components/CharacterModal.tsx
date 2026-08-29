@@ -1,4 +1,4 @@
-import { Check, Flame, RefreshCw, Sparkles, User, X } from 'lucide-react';
+import { Check, Flame, Minus, Plus, RefreshCw, Sparkles, User, Wand2, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { AbilityScore, CasterClass, CharacterProfile, SpellSlotState } from '../types';
 import {
@@ -45,13 +45,15 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   const [level, setLevel] = useState<number>(profile.level);
   const [ability, setAbility] = useState<AbilityScore>(profile.spellcastingAbility);
   const [abilityScore, setAbilityScore] = useState<number>(profile.abilityScoreValue);
-  const [pactSlotCount, setPactSlotCount] = useState<number>(slots.pact?.max || 2);
-  const [pactSlotLevel, setPactSlotLevel] = useState<number>(slots.pact?.level || 5);
+  const [dcBonus, setDcBonus] = useState<number>(profile.dcBonus || 0);
+  const [attackBonus, setAttackBonus] = useState<number>(profile.attackBonus || 0);
 
   const mod = getAbilityModifier(abilityScore);
   const prof = getProficiencyBonus(level);
-  const dc = 8 + prof + mod;
-  const atk = prof + mod;
+  const baseDC = 8 + prof + mod;
+  const totalDC = baseDC + dcBonus;
+  const baseAtk = prof + mod;
+  const totalAtk = baseAtk + attackBonus;
   const maxPrepared = calculateMaxPrepared(characterClass, level, abilityScore);
 
   const handleSave = () => {
@@ -62,12 +64,19 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
       spellcastingAbility: ability,
       abilityScoreValue: abilityScore,
       proficiencyBonus: prof,
+      dcBonus,
+      attackBonus,
     });
     onClose();
   };
 
   const handleApplyPreset = () => {
     onApplyPresetSlots(characterClass, level);
+  };
+
+  const handleSetBothBonuses = (val: number) => {
+    setDcBonus(val);
+    setAttackBonus(val);
   };
 
   return (
@@ -79,13 +88,13 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-[#c5a059]/40 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-[#c5a059]/40 flex items-center justify-center shadow-md shadow-black">
               <User className="w-5 h-5 text-[#c5a059]" />
             </div>
             <div>
-              <h2 className="text-lg font-serif font-bold text-[#c5a059]">Character & Spell Slot Config</h2>
+              <h2 className="text-lg font-serif font-bold text-[#c5a059]">Character & Spell Stats</h2>
               <p className="text-xs text-zinc-400">
-                Configure your class, level, ability scores, and spell slot maximums
+                Adjust ability scores, DC/Attack item modifiers, and spell slots
               </p>
             </div>
           </div>
@@ -192,26 +201,215 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
             </div>
           </div>
 
-          {/* Computed Stat Cards */}
+          {/* Interactive Computed Stat Cards with Steppers */}
           <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-[#161616] border border-zinc-800 text-center">
-            <div>
+            {/* Spell Save DC Card */}
+            <div className="flex flex-col justify-between p-1">
               <span className="text-[10px] uppercase font-bold text-zinc-400 block font-mono">Spell Save DC</span>
-              <span className="text-base font-bold text-[#c5a059] font-mono">{dc}</span>
-              <span className="text-[9px] text-zinc-500 block">8+Prof+Mod</span>
+              <div className="flex items-center justify-center gap-1 my-0.5">
+                <button
+                  type="button"
+                  onClick={() => setDcBonus((prev) => prev - 1)}
+                  className="w-5 h-5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center text-xs active:scale-95"
+                  title="Decrease DC Modifier"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-base sm:text-lg font-bold text-[#c5a059] font-mono min-w-[28px]">
+                  {totalDC}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDcBonus((prev) => prev + 1)}
+                  className="w-5 h-5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center text-xs active:scale-95"
+                  title="Increase DC Modifier"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+              <span className="text-[9px] text-zinc-500 block truncate font-mono">
+                8+{prof}+{mod}{dcBonus !== 0 ? (dcBonus > 0 ? `+${dcBonus}` : dcBonus) : ''}
+              </span>
             </div>
 
-            <div>
+            {/* Spell Attack Card */}
+            <div className="flex flex-col justify-between p-1">
               <span className="text-[10px] uppercase font-bold text-zinc-400 block font-mono">Spell Attack</span>
-              <span className="text-base font-bold text-[#dfc384] font-mono">+{atk}</span>
-              <span className="text-[9px] text-zinc-500 block">Prof+Mod</span>
+              <div className="flex items-center justify-center gap-1 my-0.5">
+                <button
+                  type="button"
+                  onClick={() => setAttackBonus((prev) => prev - 1)}
+                  className="w-5 h-5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center text-xs active:scale-95"
+                  title="Decrease Attack Modifier"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-base sm:text-lg font-bold text-[#dfc384] font-mono min-w-[28px]">
+                  {totalAtk >= 0 ? `+${totalAtk}` : totalAtk}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAttackBonus((prev) => prev + 1)}
+                  className="w-5 h-5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center text-xs active:scale-95"
+                  title="Increase Attack Modifier"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+              <span className="text-[9px] text-zinc-500 block truncate font-mono">
+                {prof}+{mod}{attackBonus !== 0 ? (attackBonus > 0 ? `+${attackBonus}` : attackBonus) : ''}
+              </span>
             </div>
 
-            <div>
+            {/* Max Prepared Card */}
+            <div className="flex flex-col justify-between p-1">
               <span className="text-[10px] uppercase font-bold text-zinc-400 block font-mono">Max Prepared</span>
-              <span className="text-base font-bold text-emerald-400 font-mono">
+              <span className="text-base sm:text-lg font-bold text-emerald-400 font-mono my-0.5">
                 {maxPrepared !== null ? maxPrepared : 'N/A'}
               </span>
-              <span className="text-[9px] text-zinc-500 block">Class Formula</span>
+              <span className="text-[9px] text-zinc-500 block font-mono truncate">
+                {characterClass === 'Wizard' || characterClass === 'Cleric' || characterClass === 'Druid'
+                  ? `Lv(${level})+Mod(${mod})`
+                  : characterClass === 'Paladin' || characterClass === 'Artificer'
+                  ? `HalfLv+Mod`
+                  : 'Known Spells'}
+              </span>
+            </div>
+          </div>
+
+          {/* Dedicated Magic Item & Misc Bonus Modifiers */}
+          <div className="p-3.5 rounded-xl bg-[#161616] border border-amber-900/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Wand2 className="w-4 h-4 text-[#c5a059]" />
+                <span className="text-xs font-bold text-[#c5a059] uppercase tracking-wider font-mono">
+                  Magic Item / Misc Modifiers
+                </span>
+              </div>
+              <span className="text-[10px] text-zinc-500 font-mono">e.g. +1 / +2 / +3 items</span>
+            </div>
+
+            <p className="text-[11px] text-zinc-400 leading-tight">
+              Add or remove bonuses from magic focuses (Rod of the Pact Keeper, Wand of the War Mage, Arcane Grimoire, Robe of the Archmagi, etc.).
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Spell Save DC Adjustment */}
+              <div className="bg-zinc-900/90 border border-zinc-800 rounded-lg p-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-zinc-300 font-mono">
+                    DC Item Bonus:
+                  </label>
+                  {dcBonus !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setDcBonus(0)}
+                      className="text-[10px] text-zinc-500 hover:text-zinc-300 underline"
+                    >
+                      Reset (0)
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDcBonus((prev) => prev - 1)}
+                    className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-bold text-sm active:scale-95"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    type="number"
+                    value={dcBonus}
+                    onChange={(e) => setDcBonus(parseInt(e.target.value) || 0)}
+                    className="flex-1 text-center bg-zinc-950 border border-zinc-700 rounded-md text-sm font-mono font-bold text-[#c5a059] py-1 focus:border-[#c5a059] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDcBonus((prev) => prev + 1)}
+                    className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-bold text-sm active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="text-[10px] text-zinc-500 font-mono flex items-center justify-between">
+                  <span>Base: {baseDC}</span>
+                  <span className="text-[#c5a059] font-bold">Total: {totalDC}</span>
+                </div>
+              </div>
+
+              {/* Spell Attack Adjustment */}
+              <div className="bg-zinc-900/90 border border-zinc-800 rounded-lg p-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-zinc-300 font-mono">
+                    Attack Item Bonus:
+                  </label>
+                  {attackBonus !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAttackBonus(0)}
+                      className="text-[10px] text-zinc-500 hover:text-zinc-300 underline"
+                    >
+                      Reset (0)
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAttackBonus((prev) => prev - 1)}
+                    className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-bold text-sm active:scale-95"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    type="number"
+                    value={attackBonus}
+                    onChange={(e) => setAttackBonus(parseInt(e.target.value) || 0)}
+                    className="flex-1 text-center bg-zinc-950 border border-zinc-700 rounded-md text-sm font-mono font-bold text-[#dfc384] py-1 focus:border-[#c5a059] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAttackBonus((prev) => prev + 1)}
+                    className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-bold text-sm active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="text-[10px] text-zinc-500 font-mono flex items-center justify-between">
+                  <span>Base: {baseAtk >= 0 ? `+${baseAtk}` : baseAtk}</span>
+                  <span className="text-[#dfc384] font-bold">Total: {totalAtk >= 0 ? `+${totalAtk}` : totalAtk}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Item Preset Shortcuts */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-zinc-800/80">
+              <span className="text-[10px] uppercase font-bold text-zinc-500 font-mono mr-1">
+                Quick Set:
+              </span>
+              {[
+                { label: 'None (+0)', val: 0 },
+                { label: '+1 Item', val: 1 },
+                { label: '+2 Item', val: 2 },
+                { label: '+3 Item', val: 3 },
+              ].map((p) => {
+                const isActive = dcBonus === p.val && attackBonus === p.val;
+                return (
+                  <button
+                    key={p.val}
+                    type="button"
+                    onClick={() => handleSetBothBonuses(p.val)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
+                      isActive
+                        ? 'bg-[#c5a059] text-black font-bold'
+                        : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

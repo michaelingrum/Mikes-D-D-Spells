@@ -29,8 +29,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   maxPrepared,
 }) => {
   const abilityMod = getAbilityModifier(profile.abilityScoreValue);
-  const spellSaveDC = 8 + profile.proficiencyBonus + abilityMod;
-  const spellAttackMod = profile.proficiencyBonus + abilityMod;
+  const dcBonus = profile.dcBonus || 0;
+  const attackBonus = profile.attackBonus || 0;
+  const spellSaveDC = 8 + profile.proficiencyBonus + abilityMod + dcBonus;
+  const spellAttackMod = profile.proficiencyBonus + abilityMod + attackBonus;
 
   // Calculate total remaining slots
   let remainingSlots = 0;
@@ -80,25 +82,53 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Center: Stat Badges (DC, Attack, Prepared Count) */}
         <div className="hidden md:flex items-center gap-2 flex-shrink-0">
           {/* Spell Save DC */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm">
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Save DC</span>
-            <span className="text-sm font-bold text-[#c5a059] font-mono">{spellSaveDC}</span>
-          </div>
+          <button
+            onClick={onOpenCharacter}
+            className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-[#c5a059]/40 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm transition-all text-left group"
+            title={`Spell Save DC: ${spellSaveDC} (Click to adjust stats or item modifiers)`}
+          >
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 font-semibold">Save DC</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-bold text-[#c5a059] font-mono">{spellSaveDC}</span>
+              {dcBonus !== 0 && (
+                <span className="text-[9px] font-mono font-bold text-amber-400/90">
+                  ({dcBonus > 0 ? `+${dcBonus}` : dcBonus})
+                </span>
+              )}
+            </div>
+          </button>
 
           {/* Spell Attack */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm">
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Atk Bonus</span>
-            <span className="text-sm font-bold text-amber-300 font-mono">+{spellAttackMod}</span>
-          </div>
+          <button
+            onClick={onOpenCharacter}
+            className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-amber-400/40 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm transition-all text-left group"
+            title={`Spell Attack Bonus: ${spellAttackMod >= 0 ? `+${spellAttackMod}` : spellAttackMod} (Click to adjust stats or item modifiers)`}
+          >
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 font-semibold">Atk Bonus</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-bold text-amber-300 font-mono">
+                {spellAttackMod >= 0 ? `+${spellAttackMod}` : spellAttackMod}
+              </span>
+              {attackBonus !== 0 && (
+                <span className="text-[9px] font-mono font-bold text-amber-400/90">
+                  ({attackBonus > 0 ? `+${attackBonus}` : attackBonus})
+                </span>
+              )}
+            </div>
+          </button>
 
           {/* Prepared limit */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm">
+          <button
+            onClick={onOpenCharacter}
+            className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-md px-3 py-1 flex items-center gap-2 shadow-sm transition-all text-left"
+            title="Prepared Spells Count (Click to adjust class & max prepared limits)"
+          >
             <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Prepared</span>
             <span className="text-sm font-bold text-zinc-100 font-mono">
               <span className="text-[#c5a059]">{totalPrepared}</span>
               {maxPrepared !== null ? <span className="text-zinc-600 font-normal">/{maxPrepared}</span> : ''}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Right: Actions */}

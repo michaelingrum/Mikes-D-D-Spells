@@ -35,6 +35,8 @@ interface SpellDetailModalProps {
   onToggleFavorite: (spellId: string) => void;
   onCast: (spell: Spell) => void;
   onDeleteSpell?: (spellId: string) => void;
+  spellSaveDC?: number;
+  spellAttackMod?: number;
 }
 
 export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
@@ -45,6 +47,8 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
   onToggleFavorite,
   onCast,
   onDeleteSpell,
+  spellSaveDC,
+  spellAttackMod,
 }) => {
   if (!spell) return null;
 
@@ -54,6 +58,12 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
   const range = formatRange(spell.range);
   const components = formatComponents(spell.components);
   const parsedEntries = parseEntries(spell.entries);
+
+  // Check if spell mentions spell attack
+  const fullText = Array.isArray(spell.entries)
+    ? spell.entries.map((e) => (typeof e === 'string' ? e : JSON.stringify(e))).join(' ')
+    : '';
+  const hasSpellAttack = /spell attack/i.test(fullText);
 
   const isCantrip = spell.level === 0;
   const isPrepared = spell.preparationStatus === 'prepared';
@@ -228,8 +238,8 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
               </div>
             )}
 
-            {/* Damage & Condition tags */}
-            {(spell.damageInflict?.length || spell.conditionInflict?.length || spell.savingThrow?.length) ? (
+            {/* Damage, Condition, Saving Throw & Spell Attack tags */}
+            {(spell.damageInflict?.length || spell.conditionInflict?.length || spell.savingThrow?.length || hasSpellAttack) ? (
               <div className="flex items-center gap-1.5 flex-wrap pt-1">
                 {spell.damageInflict?.map((dmg) => (
                   <span
@@ -250,11 +260,24 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
                 {spell.savingThrow?.map((save) => (
                   <span
                     key={save}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-300 uppercase font-mono"
+                    className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 border border-[#c5a059]/40 text-[#c5a059] uppercase font-mono font-bold flex items-center gap-1"
                   >
-                    {save} Save
+                    <span>{save} Save</span>
+                    {spellSaveDC !== undefined && (
+                      <span className="text-zinc-300 font-normal">(DC {spellSaveDC})</span>
+                    )}
                   </span>
                 ))}
+                {hasSpellAttack && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 border border-amber-500/40 text-amber-300 uppercase font-mono font-bold flex items-center gap-1">
+                    <span>Spell Attack</span>
+                    {spellAttackMod !== undefined && (
+                      <span className="text-zinc-300 font-normal">
+                        ({spellAttackMod >= 0 ? `+${spellAttackMod}` : spellAttackMod} to hit)
+                      </span>
+                    )}
+                  </span>
+                )}
               </div>
             ) : null}
           </div>

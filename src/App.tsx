@@ -31,7 +31,7 @@ import { SpellCard } from './components/SpellCard';
 import { SpellDetailModal } from './components/SpellDetailModal';
 import { useSpellbook } from './hooks/useSpellbook';
 import { FilterOptions, Spell, SpellSlotState } from './types';
-import { calculateMaxPrepared } from './utils/spellSlotPresets';
+import { calculateMaxPrepared, getAbilityModifier } from './utils/spellSlotPresets';
 import { clean5eTags, formatSpellLevel, getSchoolInfo } from './utils/textParser';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -146,6 +146,19 @@ export default function App() {
 
   const maxPreparedLimit = useMemo(() => {
     return calculateMaxPrepared(profile.characterClass, profile.level, profile.abilityScoreValue);
+  }, [profile]);
+
+  // Calculate DC & Attack Bonus (including magic item bonuses)
+  const spellSaveDC = useMemo(() => {
+    const abilityMod = getAbilityModifier(profile.abilityScoreValue);
+    const dcBonus = profile.dcBonus || 0;
+    return 8 + profile.proficiencyBonus + abilityMod + dcBonus;
+  }, [profile]);
+
+  const spellAttackMod = useMemo(() => {
+    const abilityMod = getAbilityModifier(profile.abilityScoreValue);
+    const attackBonus = profile.attackBonus || 0;
+    return profile.proficiencyBonus + abilityMod + attackBonus;
   }, [profile]);
 
   // Filter & Sort Logic
@@ -654,6 +667,8 @@ export default function App() {
             deleteSpell(id);
             showToast('Spell removed from spellbook', 'info');
           }}
+          spellSaveDC={spellSaveDC}
+          spellAttackMod={spellAttackMod}
         />
       )}
     </div>
