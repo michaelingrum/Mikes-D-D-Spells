@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Filter, RotateCcw, Search, Sparkles, Star, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { FilterOptions, Spell } from '../types';
+import { FilterOptions, PreparationFilterItem, Spell } from '../types';
 import { SCHOOL_MAP } from '../utils/textParser';
 
 interface FilterBarProps {
@@ -112,11 +112,46 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   const isFiltered =
     filters.searchQuery !== '' ||
-    filters.level !== 'all' ||
-    filters.school !== 'all' ||
-    filters.preparation !== 'all' ||
-    filters.castingTime !== 'all' ||
-    filters.characterClass !== 'all';
+    filters.levels.length > 0 ||
+    filters.schools.length > 0 ||
+    filters.preparations.length > 0 ||
+    filters.castingTimes.length > 0 ||
+    filters.characterClasses.length > 0;
+
+  const handleTogglePreparation = (item: PreparationFilterItem) => {
+    const isSelected = filters.preparations.includes(item);
+    const next = isSelected
+      ? filters.preparations.filter((p) => p !== item)
+      : [...filters.preparations, item];
+    onFilterChange({ preparations: next });
+  };
+
+  const handleToggleLevel = (lvl: number) => {
+    const isSelected = filters.levels.includes(lvl);
+    const next = isSelected
+      ? filters.levels.filter((l) => l !== lvl)
+      : [...filters.levels, lvl];
+    onFilterChange({ levels: next });
+  };
+
+  const handleToggleSchool = (code: string) => {
+    const upper = code.toUpperCase();
+    const isSelected = filters.schools.some((s) => s.toUpperCase() === upper);
+    const next = isSelected
+      ? filters.schools.filter((s) => s.toUpperCase() !== upper)
+      : [...filters.schools, code];
+    onFilterChange({ schools: next });
+  };
+
+  const handleToggleCastingTime = (time: string) => {
+    const isSelected = filters.castingTimes.includes(time);
+    const next = isSelected
+      ? filters.castingTimes.filter((t) => t !== time)
+      : [...filters.castingTimes, time];
+    onFilterChange({ castingTimes: next });
+  };
+
+  const hasAdvancedActive = filters.schools.length > 0 || filters.castingTimes.length > 0;
 
   return (
     <div className="bg-[#0f0f10] border-b border-zinc-800 px-3 py-2.5 sm:px-6 space-y-2">
@@ -159,74 +194,80 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
               className={`px-3 py-2 text-xs rounded-lg border flex items-center gap-1.5 transition-colors font-medium ${
-                showAdvanced || filters.school !== 'all' || filters.castingTime !== 'all'
+                showAdvanced || hasAdvancedActive
                   ? 'bg-zinc-900 border-[#c5a059] text-[#c5a059] shadow-sm'
                   : 'bg-[#121212] border-zinc-800 text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <Filter className="w-3.5 h-3.5 text-[#c5a059]" />
-              <span className="text-[11px] uppercase tracking-wider">Schools & More</span>
+              <span className="text-[11px] uppercase tracking-wider">
+                Schools & More {hasAdvancedActive && `(${filters.schools.length + filters.castingTimes.length})`}
+              </span>
             </button>
           </div>
         </div>
 
         {/* Primary Filter Tabs: Preparation Status (Scrollable with visual indicators) */}
         <ScrollableRow>
+          {/* All Spells Pill */}
           <button
-            onClick={() => onFilterChange({ preparation: 'all' })}
+            onClick={() => onFilterChange({ preparations: [] })}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-              filters.preparation === 'all'
-                ? 'bg-[#c5a059] text-black shadow-md'
-                : 'bg-[#18181b] text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
+              filters.preparations.length === 0
+                ? 'bg-[#c5a059] text-black shadow-md font-bold'
+                : 'bg-[#18181b] text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
             }`}
           >
             <span>All Spells</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-              filters.preparation === 'all' ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-zinc-400'
+              filters.preparations.length === 0 ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-zinc-400'
             }`}>
               {prepCounts.all}
             </span>
           </button>
 
+          {/* Prepared Pill */}
           <button
-            onClick={() => onFilterChange({ preparation: 'prepared' })}
+            onClick={() => handleTogglePreparation('prepared')}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-              filters.preparation === 'prepared'
-                ? 'bg-[#c5a059] text-black shadow-md'
+              filters.preparations.includes('prepared')
+                ? 'bg-[#c5a059] text-black shadow-md font-bold ring-1 ring-[#c5a059]'
                 : 'bg-[#18181b] text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${filters.preparation === 'prepared' ? 'bg-black' : 'bg-[#c5a059]'}`} />
+            <span className={`w-2 h-2 rounded-full ${filters.preparations.includes('prepared') ? 'bg-black' : 'bg-[#c5a059]'}`} />
             <span>Prepared</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-              filters.preparation === 'prepared' ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-[#c5a059]'
+              filters.preparations.includes('prepared') ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-[#c5a059]'
             }`}>
               {prepCounts.prepared}
             </span>
           </button>
 
+          {/* Always Available Pill */}
           <button
-            onClick={() => onFilterChange({ preparation: 'always_available' })}
+            onClick={() => handleTogglePreparation('always_available')}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-              filters.preparation === 'always_available'
-                ? 'bg-[#c5a059] text-black shadow-md'
+              filters.preparations.includes('always_available')
+                ? 'bg-[#c5a059] text-black shadow-md font-bold ring-1 ring-[#c5a059]'
                 : 'bg-[#18181b] text-amber-300 hover:bg-zinc-800 border border-amber-900/30'
             }`}
           >
             <Sparkles className="w-3 h-3" />
             <span>Always Avail</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-              filters.preparation === 'always_available' ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-amber-200'
+              filters.preparations.includes('always_available') ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-amber-200'
             }`}>
               {prepCounts.always_available}
             </span>
           </button>
 
+          {/* Unprepared Pill */}
           <button
-            onClick={() => onFilterChange({ preparation: 'unprepared' })}
+            onClick={() => handleTogglePreparation('unprepared')}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-              filters.preparation === 'unprepared'
-                ? 'bg-zinc-700 text-white'
+              filters.preparations.includes('unprepared')
+                ? 'bg-zinc-600 text-white font-bold ring-1 ring-zinc-400'
                 : 'bg-[#18181b] text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
             }`}
           >
@@ -236,28 +277,30 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </span>
           </button>
 
+          {/* Favorites Pill */}
           <button
-            onClick={() => onFilterChange({ preparation: 'favorites' })}
+            onClick={() => handleTogglePreparation('favorites')}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-              filters.preparation === 'favorites'
-                ? 'bg-amber-400 text-black font-bold'
+              filters.preparations.includes('favorites')
+                ? 'bg-amber-400 text-black font-bold ring-1 ring-amber-300 shadow-md'
                 : 'bg-[#18181b] text-amber-300 hover:bg-zinc-800 border border-amber-900/30'
             }`}
           >
             <Star className="w-3 h-3 fill-current" />
             <span>Favorites</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-              filters.preparation === 'favorites' ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-amber-200'
+              filters.preparations.includes('favorites') ? 'bg-black/30 text-black font-bold' : 'bg-black/50 text-amber-200'
             }`}>
               {prepCounts.favorites}
             </span>
           </button>
 
+          {/* Rituals Pill */}
           <button
-            onClick={() => onFilterChange({ preparation: 'rituals' })}
+            onClick={() => handleTogglePreparation('rituals')}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-              filters.preparation === 'rituals'
-                ? 'bg-teal-700 text-white'
+              filters.preparations.includes('rituals')
+                ? 'bg-teal-600 text-white font-bold ring-1 ring-teal-400 shadow-md'
                 : 'bg-[#18181b] text-teal-300 hover:bg-zinc-800 border border-teal-900/30'
             }`}
           >
@@ -270,10 +313,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* Level Filter Tabs (0 to 9) (Scrollable with visual indicators) */}
         <ScrollableRow>
+          {/* All Levels */}
           <button
-            onClick={() => onFilterChange({ level: 'all' })}
+            onClick={() => onFilterChange({ levels: [] })}
             className={`flex-shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              filters.level === 'all'
+              filters.levels.length === 0
                 ? 'bg-[#c5a059] text-black font-bold shadow-sm'
                 : 'bg-[#18181b] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800'
             }`}
@@ -281,11 +325,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             All Lvl
           </button>
 
+          {/* Cantrips */}
           <button
-            onClick={() => onFilterChange({ level: 0 })}
+            onClick={() => handleToggleLevel(0)}
             className={`flex-shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${
-              filters.level === 0
-                ? 'bg-[#c5a059] text-black font-bold shadow-sm'
+              filters.levels.includes(0)
+                ? 'bg-[#c5a059] text-black font-bold shadow-sm ring-1 ring-[#c5a059]'
                 : 'bg-[#18181b] text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
             }`}
           >
@@ -293,16 +338,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <span className="text-[10px] opacity-75 font-mono">({levelCounts.cantrips || 0})</span>
           </button>
 
+          {/* Levels 1 to 9 */}
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((lvl) => {
             const count = levelCounts[lvl.toString()] || 0;
-            const isSelected = filters.level === lvl;
+            const isSelected = filters.levels.includes(lvl);
             return (
               <button
                 key={lvl}
-                onClick={() => onFilterChange({ level: lvl })}
+                onClick={() => handleToggleLevel(lvl)}
                 className={`flex-shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${
                   isSelected
-                    ? 'bg-[#c5a059] text-black font-bold shadow-sm'
+                    ? 'bg-[#c5a059] text-black font-bold shadow-sm ring-1 ring-[#c5a059]'
                     : count > 0
                     ? 'bg-[#18181b] text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
                     : 'bg-zinc-950 text-zinc-600 border border-zinc-900'
@@ -325,9 +371,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button
-                  onClick={() => onFilterChange({ school: 'all' })}
+                  onClick={() => onFilterChange({ schools: [] })}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    filters.school === 'all'
+                    filters.schools.length === 0
                       ? 'bg-zinc-200 text-zinc-950 font-semibold'
                       : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
                   }`}
@@ -336,14 +382,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 </button>
 
                 {Object.entries(SCHOOL_MAP).map(([code, info]) => {
-                  const isSelected = filters.school.toUpperCase() === code;
+                  const isSelected = filters.schools.some(
+                    (s) => s.toUpperCase() === code.toUpperCase()
+                  );
                   return (
                     <button
                       key={code}
-                      onClick={() => onFilterChange({ school: isSelected ? 'all' : code })}
+                      onClick={() => handleToggleSchool(code)}
                       className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all border ${
                         isSelected
-                          ? `${info.bgLight} ${info.color} ${info.border} font-bold ring-1 ring-[#c5a059]`
+                          ? `${info.bgLight} ${info.color} ${info.border} font-bold ring-2 ring-[#c5a059]`
                           : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
                       }`}
                     >
@@ -356,23 +404,36 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
             {/* Casting Time & Sort */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mr-1 font-mono">
                   Cast Time:
                 </span>
-                {['all', 'action', 'bonus action', 'reaction', 'minute'].map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => onFilterChange({ castingTime: time })}
-                    className={`px-2 py-0.5 rounded text-xs capitalize transition-colors ${
-                      filters.castingTime === time
-                        ? 'bg-[#c5a059] text-black font-semibold'
-                        : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
-                    }`}
-                  >
-                    {time === 'all' ? 'Any' : time}
-                  </button>
-                ))}
+                <button
+                  onClick={() => onFilterChange({ castingTimes: [] })}
+                  className={`px-2 py-0.5 rounded text-xs capitalize transition-colors ${
+                    filters.castingTimes.length === 0
+                      ? 'bg-[#c5a059] text-black font-semibold'
+                      : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
+                  }`}
+                >
+                  Any
+                </button>
+                {['action', 'bonus action', 'reaction', 'minute'].map((time) => {
+                  const isSelected = filters.castingTimes.includes(time);
+                  return (
+                    <button
+                      key={time}
+                      onClick={() => handleToggleCastingTime(time)}
+                      className={`px-2 py-0.5 rounded text-xs capitalize transition-colors ${
+                        isSelected
+                          ? 'bg-[#c5a059] text-black font-semibold ring-1 ring-[#c5a059]'
+                          : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="flex items-center gap-1.5">

@@ -158,12 +158,33 @@ export interface ActiveConcentration {
   durationText?: string;
 }
 
+export type ResetType = 'long' | 'short' | 'special' | 'none';
+
+export type FeatureDisplayType = 'pips' | 'counter';
+
+export interface CharacterFeature {
+  id: string;
+  name: string;
+  source?: string; // e.g. 'Artificer 7', 'Feat: Metamagic Adept', 'Paladin 1'
+  description?: string;
+  current: number;
+  max: number;
+  resetType: ResetType; // 'long', 'short', etc.
+  displayType: FeatureDisplayType; // 'pips' (orbs/dots) or 'counter' (pool number with +/- or direct spend)
+  unitLabel?: string; // e.g. "Points", "HP", "Uses", "Dice"
+  category?: 'class' | 'feat' | 'species' | 'item' | 'other';
+  colorTheme?: 'gold' | 'emerald' | 'crimson' | 'violet' | 'amber' | 'blue';
+}
+
+export type PreparationFilterItem = PreparationStatus | 'favorites' | 'rituals' | 'concentration';
+
 export interface FilterOptions {
   searchQuery: string;
-  level: number | 'all' | 'cantrips' | 'leveled';
-  school: string | 'all';
-  preparation: PreparationStatus | 'all' | 'favorites' | 'rituals' | 'concentration';
-  castingTime: string | 'all';
-  characterClass: string | 'all';
+  levels: number[];
+  schools: string[];
+  preparations: PreparationFilterItem[];
+  castingTimes: string[];
+  characterClasses: string[];
   sortBy: 'level-asc' | 'level-desc' | 'name-asc' | 'name-desc' | 'school';
 }
+

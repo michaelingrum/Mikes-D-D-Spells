@@ -1,16 +1,18 @@
 import confetti from 'canvas-confetti';
-import { Moon, Sparkles, Sun, X, Zap } from 'lucide-react';
+import { Layers, Moon, Sparkles, Sun, X, Zap } from 'lucide-react';
 import React from 'react';
-import { SpellSlotState } from '../types';
+import { CharacterFeature, SpellSlotState } from '../types';
 
 interface LongRestModalProps {
   slots: SpellSlotState;
+  features?: CharacterFeature[];
   onClose: () => void;
   onConfirmRest: () => void;
 }
 
 export const LongRestModal: React.FC<LongRestModalProps> = ({
   slots,
+  features = [],
   onClose,
   onConfirmRest,
 }) => {
@@ -25,6 +27,11 @@ export const LongRestModal: React.FC<LongRestModalProps> = ({
   if (slots.pact) {
     slotsToRecover += slots.pact.max - slots.pact.current;
   }
+
+  // Count how many features will be recovered
+  const recoveringFeatures = features.filter(
+    (f) => (f.resetType === 'long' || f.resetType === 'short') && f.current < f.max
+  );
 
   const handleRest = () => {
     confetti({
@@ -60,7 +67,7 @@ export const LongRestModal: React.FC<LongRestModalProps> = ({
           Take a Long Rest
         </h2>
         <p className="text-xs text-zinc-400 mb-4 max-w-xs mx-auto">
-          A period of extended downtime, at least 8 hours long. You will awake refreshed with all magical spell slots restored.
+          A period of extended downtime, at least 8 hours long. You will awake refreshed with all magical spell slots and daily features restored.
         </p>
 
         {/* Recovery details */}
@@ -72,6 +79,19 @@ export const LongRestModal: React.FC<LongRestModalProps> = ({
             </span>
             <strong className="text-[#c5a059] font-mono text-sm">
               +{slotsToRecover} slots
+            </strong>
+          </div>
+
+          {/* Features to restore */}
+          <div className="flex items-center justify-between text-xs text-zinc-300 font-mono pt-1.5 border-t border-zinc-800">
+            <span className="flex items-center gap-1.5 text-zinc-300 font-sans">
+              <Layers className="w-3.5 h-3.5 text-[#dfc384]" />
+              Limited-Use Features:
+            </span>
+            <strong className="text-[#dfc384] font-mono text-sm">
+              {recoveringFeatures.length > 0
+                ? `Refill ${recoveringFeatures.length} active`
+                : 'All at Max'}
             </strong>
           </div>
 
@@ -105,3 +125,4 @@ export const LongRestModal: React.FC<LongRestModalProps> = ({
     </div>
   );
 };
+

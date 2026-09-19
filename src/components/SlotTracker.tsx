@@ -133,26 +133,25 @@ export const SlotTracker: React.FC<SlotTrackerProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Quick Short Rest trigger */}
+            <button
+              onClick={onTakeShortRest}
+              className="text-[11px] px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-700/50 flex items-center gap-1 transition-colors"
+              title="Restore Pact slots & short-rest features"
+            >
+              <RotateCcw className="w-3 h-3 text-amber-400" />
+              <span>Short Rest</span>
+            </button>
+
             {/* Quick Long Rest trigger */}
             <button
               onClick={onTakeLongRest}
               className="text-[11px] px-2 py-1 rounded bg-[#8b0000]/80 hover:bg-[#8b0000] text-red-100 border border-[#a31a1a]/60 flex items-center gap-1 transition-colors"
-              title="Restore all spell slots (Ends concentration)"
+              title="Restore all spell slots & daily features (Ends concentration)"
             >
               <Moon className="w-3 h-3 text-red-200" />
-              <span>Restore All</span>
+              <span>Long Rest</span>
             </button>
-
-            {hasPact && (
-              <button
-                onClick={onTakeShortRest}
-                className="text-[11px] px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-amber-300 border border-zinc-700 flex items-center gap-1 transition-colors"
-                title="Restore Pact slots"
-              >
-                <RotateCcw className="w-3 h-3 text-amber-400" />
-                <span>Short Rest</span>
-              </button>
-            )}
 
             {/* Toggle collapse */}
             <button

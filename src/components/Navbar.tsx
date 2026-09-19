@@ -1,4 +1,4 @@
-import { BookOpen, Download, Moon, Plus, Sparkles, Smartphone, Upload, User } from 'lucide-react';
+import { BookOpen, Download, Layers, Moon, Plus, RotateCcw, Sparkles, Smartphone, Upload, User } from 'lucide-react';
 import React from 'react';
 import { CharacterProfile, SpellSlotState } from '../types';
 import { getAbilityModifier } from '../utils/spellSlotPresets';
@@ -6,10 +6,13 @@ import { getAbilityModifier } from '../utils/spellSlotPresets';
 interface NavbarProps {
   profile: CharacterProfile;
   slots: SpellSlotState;
+  featuresCount?: number;
   onOpenCharacter: () => void;
+  onOpenFeatures: () => void;
   onOpenImport: () => void;
   onOpenAddSpell: () => void;
   onOpenLongRest: () => void;
+  onOpenShortRest: () => void;
   onOpenInstall: () => void;
   isStandalone?: boolean;
   totalPrepared: number;
@@ -19,15 +22,19 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   profile,
   slots,
+  featuresCount = 0,
   onOpenCharacter,
+  onOpenFeatures,
   onOpenImport,
   onOpenAddSpell,
   onOpenLongRest,
+  onOpenShortRest,
   onOpenInstall,
   isStandalone = false,
   totalPrepared,
   maxPrepared,
 }) => {
+
   const abilityMod = getAbilityModifier(profile.abilityScoreValue);
   const dcBonus = profile.dcBonus || 0;
   const attackBonus = profile.attackBonus || 0;
@@ -133,17 +140,42 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {/* Short Rest Button */}
+          <button
+            onClick={onOpenShortRest}
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-amber-600/40 hover:border-amber-500 text-amber-300 hover:text-amber-200 text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold transition-all active:scale-95 shadow-sm"
+            title="Take a Short Rest to regain Pact slots & short-rest features (1 hour)"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+            <span className="hidden sm:inline">Short Rest</span>
+          </button>
+
           {/* Long Rest Button in signature crimson aesthetic - Compact on mobile */}
           <button
             onClick={onOpenLongRest}
             className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded bg-[#8b0000] hover:bg-[#a31a1a] border border-[#a31a1a] text-white text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold transition-all active:scale-95 shadow-md shadow-red-950/40"
-            title="Take a Long Rest to restore all spell slots"
+            title="Take a Long Rest to restore all spell slots & daily features (8 hours)"
           >
             <Moon className="w-3.5 h-3.5 text-red-200 flex-shrink-0" />
             <span className="hidden sm:inline">Long Rest</span>
             <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/40 text-red-200">
               {remainingSlots}/{maxSlots}
             </span>
+          </button>
+
+          {/* Features Setup Button */}
+          <button
+            onClick={onOpenFeatures}
+            className="flex p-1.5 sm:px-2.5 sm:py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-[#c5a059]/40 text-zinc-300 hover:text-white text-xs sm:text-sm font-medium transition-colors items-center gap-1.5"
+            title="Manage Features & Limited-Use Trackers"
+          >
+            <Layers className="w-4 h-4 text-[#dfc384]" />
+            <span className="hidden sm:inline text-xs">Features</span>
+            {featuresCount > 0 && (
+              <span className="text-[10px] font-mono px-1 rounded bg-zinc-800 text-[#dfc384]">
+                {featuresCount}
+              </span>
+            )}
           </button>
 
           {/* Import JSON - Hidden on mobile because it is in bottom bar */}

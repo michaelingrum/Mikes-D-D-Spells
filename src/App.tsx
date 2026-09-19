@@ -10,6 +10,7 @@ import {
   Download,
   Filter,
   Flame,
+  Layers,
   Moon,
   Plus,
   RotateCcw,
@@ -21,11 +22,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AddSpellModal } from './components/AddSpellModal';
 import { CastSpellModal } from './components/CastSpellModal';
 import { CharacterModal } from './components/CharacterModal';
+import { FeaturesManagerModal } from './components/FeaturesManagerModal';
+import { FeaturesTrackerStrip } from './components/FeaturesTrackerStrip';
 import { FilterBar } from './components/FilterBar';
 import { ImportModal } from './components/ImportModal';
 import { InstallModal } from './components/InstallModal';
 import { LongRestModal } from './components/LongRestModal';
 import { Navbar } from './components/Navbar';
+import { ShortRestModal } from './components/ShortRestModal';
 import { SlotTracker } from './components/SlotTracker';
 import { SpellCard } from './components/SpellCard';
 import { SpellDetailModal } from './components/SpellDetailModal';
@@ -62,25 +66,45 @@ export default function App() {
     deleteSpell,
     importSpells,
     resetToDefaultSample,
+    // Features state and actions
+    features,
+    adjustFeature,
+    setFeatureCurrent,
+    resetFeature,
+    addFeature,
+    updateFeature,
+    deleteFeature,
+    reorderFeatures,
   } = useSpellbook();
 
   // Filter & Search State
   const [filters, setFilters] = useState<FilterOptions>({
     searchQuery: '',
-    level: 'all',
-    school: 'all',
-    preparation: 'all',
-    castingTime: 'all',
-    characterClass: 'all',
+    levels: [],
+    schools: [],
+    preparations: [],
+    castingTimes: [],
+    characterClasses: [],
     sortBy: 'level-asc',
   });
 
   // Modal State
   const [activeModal, setActiveModal] = useState<
-    'character' | 'import' | 'addSpell' | 'longRest' | 'install' | null
+    'character' | 'import' | 'addSpell' | 'longRest' | 'shortRest' | 'install' | 'features' | null
   >(null);
   const [detailSpell, setDetailSpell] = useState<Spell | null>(null);
   const [castingSpell, setCastingSpell] = useState<Spell | null>(null);
+
+  // Derive latest spell data for detail & casting modals to ensure real-time reactivity
+  const activeDetailSpell = useMemo(() => {
+    if (!detailSpell) return null;
+    return spells.find((s) => s.id === detailSpell.id) || detailSpell;
+  }, [spells, detailSpell]);
+
+  const activeCastingSpell = useMemo(() => {
+    if (!castingSpell) return null;
+    return spells.find((s) => s.id === castingSpell.id) || castingSpell;
+  }, [spells, castingSpell]);
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -133,11 +157,11 @@ export default function App() {
   const handleResetFilters = () => {
     setFilters({
       searchQuery: '',
-      level: 'all',
-      school: 'all',
-      preparation: 'all',
-      castingTime: 'all',
-      characterClass: 'all',
+      levels: [],
+      schools: [],
+      preparations: [],
+      castingTimes: [],
+      characterClasses: [],
       sortBy: 'level-asc',
     });
   };
@@ -164,90 +188,121 @@ export default function App() {
     return profile.proficiencyBonus + abilityMod + attackBonus;
   }, [profile]);
 
-  // Filter & Sort Logic
+  // Filter & Sort Logic with OR semantics within filter categories
   const filteredSpells = useMemo(() => {
-    return spells.filter((spell) => {
-      // Search query filter
-      if (filters.searchQuery.trim()) {
-        const q = filters.searchQuery.toLowerCase().trim();
-        const nameMatch = spell.name.toLowerCase().includes(q);
-        const schoolMatch = getSchoolInfo(spell.school).name.toLowerCase().includes(q);
-        const classMatch = spell.classes?.fromClassList?.some((c) =>
-          c.name.toLowerCase().includes(q)
-        );
-        const entriesMatch = spell.entries?.some((e) =>
-          typeof e === 'string' ? clean5eTags(e).toLowerCase().includes(q) : false
-        );
+    return spells
+      .filter((spell) => {
+        // Search query filter (AND with other filter categories)
+        if (filters.searchQuery.trim()) {
+          const q = filters.searchQuery.toLowerCase().trim();
+          const nameMatch = spell.name.toLowerCase().includes(q);
+          const schoolMatch = getSchoolInfo(spell.school).name.toLowerCase().includes(q);
+          const classMatch = spell.classes?.fromClassList?.some((c) =>
+            c.name.toLowerCase().includes(q)
+          );
+          const entriesMatch = spell.entries?.some((e) =>
+            typeof e === 'string' ? clean5eTags(e).toLowerCase().includes(q) : false
+          );
 
-        if (!nameMatch && !schoolMatch && !classMatch && !entriesMatch) {
-          return false;
+          if (!nameMatch && !schoolMatch && !classMatch && !entriesMatch) {
+            return false;
+          }
         }
-      }
 
-      // Level filter
-      if (filters.level !== 'all') {
-        if (typeof filters.level === 'number' && spell.level !== filters.level) {
-          return false;
+        // Level filter (OR logic across selected levels)
+        if (filters.levels.length > 0) {
+          if (!filters.levels.includes(spell.level)) {
+            return false;
+          }
         }
-      }
 
-      // School filter
-      if (filters.school !== 'all') {
-        const schoolUpper = filters.school.toUpperCase();
-        if (
-          spell.school.toUpperCase() !== schoolUpper &&
-          getSchoolInfo(spell.school).name.toUpperCase() !== schoolUpper
-        ) {
-          return false;
+        // School filter (OR logic across selected schools)
+        if (filters.schools.length > 0) {
+          const schoolUpperList = filters.schools.map((s) => s.toUpperCase());
+          const spellSchoolCode = spell.school.toUpperCase();
+          const spellSchoolName = getSchoolInfo(spell.school).name.toUpperCase();
+          const matchesSchool = schoolUpperList.some(
+            (s) => s === spellSchoolCode || s === spellSchoolName
+          );
+          if (!matchesSchool) {
+            return false;
+          }
         }
-      }
 
-      // Preparation filter
-      if (filters.preparation !== 'all') {
-        if (filters.preparation === 'prepared') {
-          if (spell.level === 0 || spell.preparationStatus !== 'prepared') return false;
-        } else if (filters.preparation === 'always_available') {
-          if (spell.level !== 0 && spell.preparationStatus !== 'always_available') return false;
-        } else if (filters.preparation === 'unprepared') {
-          if (spell.level === 0 || spell.preparationStatus !== 'unprepared') return false;
-        } else if (filters.preparation === 'favorites') {
-          if (!spell.isFavorite) return false;
-        } else if (filters.preparation === 'rituals') {
-          if (!spell.meta?.ritual) return false;
-        } else if (filters.preparation === 'concentration') {
-          const isConc = spell.duration?.some((d) => d.concentration);
-          if (!isConc) return false;
+        // Preparation / Tag filter (OR logic across selected preparation categories)
+        if (filters.preparations.length > 0) {
+          const matchesPrep = filters.preparations.some((p) => {
+            if (p === 'prepared') {
+              return spell.level > 0 && spell.preparationStatus === 'prepared';
+            }
+            if (p === 'always_available') {
+              return spell.level === 0 || spell.preparationStatus === 'always_available';
+            }
+            if (p === 'unprepared') {
+              return spell.level > 0 && spell.preparationStatus === 'unprepared';
+            }
+            if (p === 'favorites') {
+              return Boolean(spell.isFavorite);
+            }
+            if (p === 'rituals') {
+              return Boolean(spell.meta?.ritual);
+            }
+            if (p === 'concentration') {
+              return Boolean(spell.duration?.some((d) => d.concentration));
+            }
+            return false;
+          });
+
+          if (!matchesPrep) {
+            return false;
+          }
         }
-      }
 
-      // Casting time filter
-      if (filters.castingTime !== 'all') {
-        const unit = filters.castingTime.toLowerCase();
-        const hasTime = spell.time?.some((t) => t.unit.toLowerCase().includes(unit));
-        if (!hasTime) return false;
-      }
+        // Casting time filter (OR logic across selected casting times)
+        if (filters.castingTimes.length > 0) {
+          const matchesTime = filters.castingTimes.some((ct) => {
+            const unit = ct.toLowerCase();
+            return spell.time?.some((t) => t.unit.toLowerCase().includes(unit));
+          });
+          if (!matchesTime) {
+            return false;
+          }
+        }
 
-      return true;
-    }).sort((a, b) => {
-      if (filters.sortBy === 'level-asc') {
-        if (a.level !== b.level) return a.level - b.level;
-        return a.name.localeCompare(b.name);
-      }
-      if (filters.sortBy === 'level-desc') {
-        if (a.level !== b.level) return b.level - a.level;
-        return a.name.localeCompare(b.name);
-      }
-      if (filters.sortBy === 'name-asc') {
-        return a.name.localeCompare(b.name);
-      }
-      if (filters.sortBy === 'name-desc') {
-        return b.name.localeCompare(a.name);
-      }
-      if (filters.sortBy === 'school') {
-        return getSchoolInfo(a.school).name.localeCompare(getSchoolInfo(b.school).name);
-      }
-      return 0;
-    });
+        // Character class filter (OR logic across selected classes)
+        if (filters.characterClasses.length > 0) {
+          const matchesClass = filters.characterClasses.some((cc) => {
+            return spell.classes?.fromClassList?.some(
+              (c) => c.name.toLowerCase() === cc.toLowerCase()
+            );
+          });
+          if (!matchesClass) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (filters.sortBy === 'level-asc') {
+          if (a.level !== b.level) return a.level - b.level;
+          return a.name.localeCompare(b.name);
+        }
+        if (filters.sortBy === 'level-desc') {
+          if (a.level !== b.level) return b.level - a.level;
+          return a.name.localeCompare(b.name);
+        }
+        if (filters.sortBy === 'name-asc') {
+          return a.name.localeCompare(b.name);
+        }
+        if (filters.sortBy === 'name-desc') {
+          return b.name.localeCompare(a.name);
+        }
+        if (filters.sortBy === 'school') {
+          return getSchoolInfo(a.school).name.localeCompare(getSchoolInfo(b.school).name);
+        }
+        return 0;
+      });
   }, [spells, filters]);
 
   // Group spells by Level for display
@@ -313,10 +368,13 @@ export default function App() {
       <Navbar
         profile={profile}
         slots={slots}
+        featuresCount={features.length}
         onOpenCharacter={() => setActiveModal('character')}
+        onOpenFeatures={() => setActiveModal('features')}
         onOpenImport={() => setActiveModal('import')}
         onOpenAddSpell={() => setActiveModal('addSpell')}
         onOpenLongRest={() => setActiveModal('longRest')}
+        onOpenShortRest={() => setActiveModal('shortRest')}
         onOpenInstall={() => setActiveModal('install')}
         isStandalone={isStandalone}
         totalPrepared={totalPreparedCount}
@@ -327,14 +385,8 @@ export default function App() {
       <SlotTracker
         slots={slots}
         onAdjustSlot={adjustSlot}
-        onTakeLongRest={() => {
-          takeLongRest();
-          showToast('Long Rest taken! All spell slots replenished.', 'success');
-        }}
-        onTakeShortRest={() => {
-          takeShortRest();
-          showToast('Short Rest taken! Pact slots replenished.', 'success');
-        }}
+        onTakeLongRest={() => setActiveModal('longRest')}
+        onTakeShortRest={() => setActiveModal('shortRest')}
         onConfigureSlots={() => setActiveModal('character')}
         activeConcentration={activeConcentration}
         onStopConcentration={() => {
@@ -347,6 +399,21 @@ export default function App() {
             setDetailSpell(found);
           }
         }}
+      />
+
+      {/* Interactive Features & Limited-Use Tracker Strip */}
+      <FeaturesTrackerStrip
+        features={features}
+        onAdjustFeature={adjustFeature}
+        onSetFeatureCurrent={setFeatureCurrent}
+        onResetFeature={(id) => {
+          resetFeature(id);
+          const f = features.find((feat) => feat.id === id);
+          showToast(`Refilled ${f?.name || 'feature'} to max!`, 'success');
+        }}
+        onOpenFeaturesManager={() => setActiveModal('features')}
+        onReorderFeatures={reorderFeatures}
+        onTakeShortRest={() => setActiveModal('shortRest')}
       />
 
       {/* Filter and Search Bar */}
@@ -366,19 +433,26 @@ export default function App() {
               Showing <strong className="text-zinc-200 font-mono">{filteredSpells.length}</strong> of{' '}
               <strong className="text-zinc-200 font-mono">{spells.length}</strong> spells
             </span>
-            {filters.preparation !== 'all' && (
+            {filters.preparations.length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-[#c5a059]/40 text-[#c5a059] text-[11px] capitalize font-mono">
-                Status: {filters.preparation.replace('_', ' ')}
+                Status: {filters.preparations.map((p) => p.replace('_', ' ')).join(' or ')}
               </span>
             )}
-            {filters.level !== 'all' && (
+            {filters.levels.length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 text-[11px] font-mono">
-                {filters.level === 0 ? 'Cantrips' : `Level ${filters.level}`}
+                {filters.levels
+                  .map((l) => (l === 0 ? 'Cantrips' : `${l}${l === 1 ? 'st' : l === 2 ? 'nd' : l === 3 ? 'rd' : 'th'}`))
+                  .join(' or ')}
               </span>
             )}
-            {filters.school !== 'all' && (
+            {filters.schools.length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 text-[11px]">
-                {getSchoolInfo(filters.school).name}
+                {filters.schools.map((s) => getSchoolInfo(s).name).join(' or ')}
+              </span>
+            )}
+            {filters.castingTimes.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 text-[11px] capitalize">
+                Time: {filters.castingTimes.join(' or ')}
               </span>
             )}
           </div>
@@ -541,20 +615,39 @@ export default function App() {
       {/* Floating Mobile Bottom Rest Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#121212]/95 backdrop-blur-md border-t border-zinc-800 p-2 sm:hidden flex items-center justify-between gap-1.5 shadow-2xl">
         <button
+          onClick={() => setActiveModal('shortRest')}
+          className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-amber-600/40 text-amber-300 text-xs font-bold flex items-center justify-center gap-1"
+          title="Take Short Rest"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+          <span>Short</span>
+        </button>
+
+        <button
           onClick={() => setActiveModal('longRest')}
-          className="flex-1 py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-[#c5a059]/40 text-[#c5a059] text-xs font-bold flex items-center justify-center gap-1"
+          className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-[#c5a059]/40 text-[#c5a059] text-xs font-bold flex items-center justify-center gap-1"
+          title="Take Long Rest"
         >
           <Moon className="w-3.5 h-3.5 text-[#c5a059]" />
-          <span>Long Rest</span>
+          <span>Long</span>
+        </button>
+
+        <button
+          onClick={() => setActiveModal('features')}
+          className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-semibold flex items-center gap-1"
+          title="Limited-Use Features"
+        >
+          <Layers className="w-3.5 h-3.5 text-[#dfc384]" />
+          <span>Features</span>
         </button>
 
         <button
           onClick={() => setActiveModal('import')}
-          className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-semibold flex items-center gap-1"
+          className="py-2 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-semibold flex items-center gap-1"
           title="Import / Export"
         >
           <Upload className="w-3.5 h-3.5 text-zinc-400" />
-          <span>Import</span>
+          <span className="hidden xs:inline">Import</span>
         </button>
 
         <button
@@ -596,6 +689,7 @@ export default function App() {
         <CharacterModal
           profile={profile}
           slots={slots}
+          featuresCount={features.length}
           onClose={() => setActiveModal(null)}
           onUpdateProfile={(p) => {
             updateProfile(p);
@@ -606,6 +700,33 @@ export default function App() {
             showToast(`Applied ${cls} Level ${lvl} spell slot table!`, 'success');
           }}
           onSetSlotMax={setSlotMax}
+          onOpenFeatures={() => setActiveModal('features')}
+        />
+      )}
+
+      {/* 1.5 Features & Limited-Use Manager Modal */}
+      {activeModal === 'features' && (
+        <FeaturesManagerModal
+          features={features}
+          profile={profile}
+          onClose={() => setActiveModal(null)}
+          onAddFeature={(f) => {
+            addFeature(f);
+            showToast(`Added tracker for ${f.name}!`, 'success');
+          }}
+          onUpdateFeature={(id, updates) => {
+            updateFeature(id, updates);
+            showToast('Feature tracker updated!', 'success');
+          }}
+          onDeleteFeature={(id) => {
+            deleteFeature(id);
+            showToast('Feature tracker removed.', 'info');
+          }}
+          onResetFeature={(id) => {
+            resetFeature(id);
+            showToast('Refilled feature charges!', 'success');
+          }}
+          onReorderFeatures={reorderFeatures}
         />
       )}
 
@@ -635,22 +756,36 @@ export default function App() {
         />
       )}
 
-      {/* 4. Long Rest Modal */}
+      {/* 4. Short Rest Modal */}
+      {activeModal === 'shortRest' && (
+        <ShortRestModal
+          slots={slots}
+          features={features}
+          onClose={() => setActiveModal(null)}
+          onConfirmRest={() => {
+            takeShortRest();
+            showToast('Short Rest completed! Pact slots and short-rest features replenished.', 'success');
+          }}
+        />
+      )}
+
+      {/* 4.5. Long Rest Modal */}
       {activeModal === 'longRest' && (
         <LongRestModal
           slots={slots}
+          features={features}
           onClose={() => setActiveModal(null)}
           onConfirmRest={() => {
             takeLongRest();
-            showToast('Long Rest completed! All spell slots replenished.', 'success');
+            showToast('Long Rest completed! All spell slots and features replenished.', 'success');
           }}
         />
       )}
 
       {/* 5. Cast Spell Slot Modal */}
-      {castingSpell && (
+      {activeCastingSpell && (
         <CastSpellModal
-          spell={castingSpell}
+          spell={activeCastingSpell}
           slots={slots}
           onClose={() => setCastingSpell(null)}
           activeConcentration={activeConcentration}
@@ -672,9 +807,9 @@ export default function App() {
       )}
 
       {/* 6. Spell Detail Sheet Modal */}
-      {detailSpell && (
+      {activeDetailSpell && (
         <SpellDetailModal
-          spell={detailSpell}
+          spell={activeDetailSpell}
           onClose={() => setDetailSpell(null)}
           onTogglePrep={(id) => togglePreparation(id)}
           onSetPrep={(id, status) => setPreparationStatus(id, status)}
@@ -685,11 +820,12 @@ export default function App() {
           }}
           onDeleteSpell={(id) => {
             deleteSpell(id);
+            setDetailSpell(null);
             showToast('Spell removed from spellbook', 'info');
           }}
           spellSaveDC={spellSaveDC}
           spellAttackMod={spellAttackMod}
-          isConcentrating={activeConcentration?.spellId === detailSpell.id}
+          isConcentrating={activeConcentration?.spellId === activeDetailSpell.id}
           onStartConcentration={(spell) => {
             startConcentration(spell);
             showToast(`Now concentrating on ${spell.name}`, 'info');

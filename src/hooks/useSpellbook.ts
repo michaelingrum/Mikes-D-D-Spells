@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_SPELLS_DATA } from '../data/defaultSpells';
 import {
   ActiveConcentration,
+  CharacterFeature,
   CharacterProfile,
   PreparationStatus,
   Spell,
@@ -15,7 +16,38 @@ const STORAGE_KEYS = {
   SLOTS: 'dnd_spellbook_slots_v3',
   PROFILE: 'dnd_spellbook_profile_v3',
   CONCENTRATION: 'dnd_spellbook_concentration_v1',
+  FEATURES: 'dnd_spellbook_features_v1',
 };
+
+const DEFAULT_FEATURES: CharacterFeature[] = [
+  {
+    id: 'feat-flash-of-genius',
+    name: 'Flash of Genius',
+    source: 'Artificer (Level 7)',
+    description: 'When you or another creature you can see within 30 feet of you makes an ability check or a saving throw, you can use your reaction to add your Intelligence modifier to the roll.',
+    current: 5,
+    max: 5,
+    resetType: 'long',
+    displayType: 'pips',
+    unitLabel: 'Uses',
+    category: 'class',
+    colorTheme: 'gold',
+  },
+  {
+    id: 'feat-metamagic-adept',
+    name: 'Metamagic Adept (Sorcery Points)',
+    source: 'Feat: Metamagic Adept',
+    description: 'You gain 2 sorcery points to spend on Metamagic options you learned from this feat. You regain all spent sorcery points when you finish a long rest.',
+    current: 2,
+    max: 2,
+    resetType: 'long',
+    displayType: 'pips',
+    unitLabel: 'Points',
+    category: 'feat',
+    colorTheme: 'violet',
+  },
+];
+
 
 const DEFAULT_PROFILE: CharacterProfile = {
   name: 'My Character',
@@ -84,7 +116,31 @@ export function useSpellbook() {
     return null;
   });
 
+  // Load Character Features & Limited-Use Resources
+  const [features, setFeatures] = useState<CharacterFeature[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.FEATURES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse saved features:', e);
+    }
+    return DEFAULT_FEATURES;
+  });
+
   // Persist to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.FEATURES, JSON.stringify(features));
+    } catch (e) {
+      console.error('Failed to save features:', e);
+    }
+  }, [features]);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.SPELLS, JSON.stringify(spells));
@@ -333,7 +389,7 @@ export function useSpellbook() {
     });
   };
 
-  // Long Rest
+  // Long Rest - refills slots and resets long-rest features
   const takeLongRest = () => {
     setSlots((prev) => {
       const next: SpellSlotState = {
@@ -355,11 +411,22 @@ export function useSpellbook() {
       }
       return next;
     });
+
+    // Reset features that recharge on long rest or short rest
+    setFeatures((prev) =>
+      prev.map((f) => {
+        if (f.resetType === 'long' || f.resetType === 'short') {
+          return { ...f, current: f.max };
+        }
+        return f;
+      })
+    );
+
     // Concentration ends on long rest
     setActiveConcentration(null);
   };
 
-  // Short Rest
+  // Short Rest - refills pact slots and short-rest features
   const takeShortRest = () => {
     setSlots((prev) => {
       if (!prev.pact) return prev;
@@ -371,6 +438,74 @@ export function useSpellbook() {
         },
       };
     });
+
+    setFeatures((prev) =>
+      prev.map((f) => {
+        if (f.resetType === 'short') {
+          return { ...f, current: f.max };
+        }
+        return f;
+      })
+    );
+  };
+
+  // Feature manipulation methods
+  const adjustFeature = (featureId: string, delta: number) => {
+    setFeatures((prev) =>
+      prev.map((f) => {
+        if (f.id !== featureId) return f;
+        const nextCurrent = Math.max(0, Math.min(f.max, f.current + delta));
+        return { ...f, current: nextCurrent };
+      })
+    );
+  };
+
+  const setFeatureCurrent = (featureId: string, value: number) => {
+    setFeatures((prev) =>
+      prev.map((f) => {
+        if (f.id !== featureId) return f;
+        const nextCurrent = Math.max(0, Math.min(f.max, value));
+        return { ...f, current: nextCurrent };
+      })
+    );
+  };
+
+  const resetFeature = (featureId: string) => {
+    setFeatures((prev) =>
+      prev.map((f) => (f.id === featureId ? { ...f, current: f.max } : f))
+    );
+  };
+
+  const addFeature = (newFeatureData: Omit<CharacterFeature, 'id'>) => {
+    const newId = `feat-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const newFeature: CharacterFeature = {
+      ...newFeatureData,
+      id: newId,
+    };
+    setFeatures((prev) => [...prev, newFeature]);
+    return newFeature;
+  };
+
+  const updateFeature = (featureId: string, updates: Partial<CharacterFeature>) => {
+    setFeatures((prev) =>
+      prev.map((f) => {
+        if (f.id !== featureId) return f;
+        const updated = { ...f, ...updates };
+        // ensure current does not exceed max
+        if (updated.max !== undefined && updated.current > updated.max) {
+          updated.current = updated.max;
+        }
+        return updated;
+      })
+    );
+  };
+
+  const deleteFeature = (featureId: string) => {
+    setFeatures((prev) => prev.filter((f) => f.id !== featureId));
+  };
+
+  const reorderFeatures = (newFeatures: CharacterFeature[]) => {
+    setFeatures(newFeatures);
   };
 
   // Apply class / level presets
@@ -539,5 +674,14 @@ export function useSpellbook() {
     deleteSpell,
     importSpells,
     resetToDefaultSample,
+    // Character Features
+    features,
+    adjustFeature,
+    setFeatureCurrent,
+    resetFeature,
+    addFeature,
+    updateFeature,
+    deleteFeature,
+    reorderFeatures,
   };
 }

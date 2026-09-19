@@ -1,4 +1,4 @@
-import { Check, Flame, Minus, Plus, RefreshCw, Sparkles, User, Wand2, X } from 'lucide-react';
+import { Check, Flame, Layers, Minus, Plus, RefreshCw, Sparkles, User, Wand2, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { AbilityScore, CasterClass, CharacterProfile, SpellSlotState } from '../types';
 import {
@@ -11,10 +11,12 @@ import {
 interface CharacterModalProps {
   profile: CharacterProfile;
   slots: SpellSlotState;
+  featuresCount?: number;
   onClose: () => void;
   onUpdateProfile: (profile: Partial<CharacterProfile>) => void;
   onApplyPresetSlots: (casterClass: CasterClass, level: number) => void;
   onSetSlotMax: (level: number | 'pact', max: number) => void;
+  onOpenFeatures?: () => void;
 }
 
 const CLASSES: CasterClass[] = [
@@ -35,10 +37,12 @@ const CLASSES: CasterClass[] = [
 export const CharacterModal: React.FC<CharacterModalProps> = ({
   profile,
   slots,
+  featuresCount = 0,
   onClose,
   onUpdateProfile,
   onApplyPresetSlots,
   onSetSlotMax,
+  onOpenFeatures,
 }) => {
   const [name, setName] = useState(profile.name);
   const [characterClass, setCharacterClass] = useState<CasterClass>(profile.characterClass);
@@ -109,6 +113,36 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto space-y-4 pr-1">
+          {/* Features Setup Link Banner */}
+          {onOpenFeatures && (
+            <div className="p-3 bg-[#171719] border border-[#c5a059]/40 rounded-xl flex items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#c5a059]/20 border border-[#c5a059]/40 flex items-center justify-center">
+                  <Layers className="w-4 h-4 text-[#dfc384]" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-serif font-bold text-[#dfc384]">
+                    Limited-Use Features & Feats
+                  </h4>
+                  <p className="text-[11px] text-zinc-400">
+                    {featuresCount} active (Flash of Genius, Metamagic, Lay on Hands...)
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenFeatures();
+                }}
+                className="px-3 py-1.5 rounded-lg bg-[#c5a059] hover:bg-[#d4af37] text-black text-xs font-bold transition-all flex items-center gap-1 active:scale-95"
+              >
+                <span>Manage</span>
+              </button>
+            </div>
+          )}
+
           {/* Character Name */}
           <div>
             <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1 font-mono">
