@@ -797,6 +797,62 @@ export const DEFAULT_SPELLS_DATA: Spell[] = [
     isFavorite: true
   },
   {
+    id: "light-phb",
+    name: "Light",
+    source: "PHB",
+    level: 0,
+    school: "V",
+    time: [{ number: 1, unit: "action" }],
+    range: { type: "point", distance: { type: "touch" } },
+    components: { v: true, m: "a firefly or phosphorescent moss" },
+    duration: [{ type: "timed", duration: { type: "hour", amount: 1 } }],
+    entries: [
+      "You touch one object that is no larger than 10 feet in any dimension. Until the spell ends, the object sheds bright light in a 20-foot radius and dim light for an additional 20 feet. The light can be colored as you like. Completely covering the object with something opaque blocks the light. The spell ends if you cast it again or dismiss it as an action."
+    ],
+    classes: {
+      fromClassList: [{ name: "Cleric", source: "PHB" }, { name: "Wizard", source: "PHB" }, { name: "Sorcerer", source: "PHB" }, { name: "Bard", source: "PHB" }, { name: "Artificer", source: "TCE" }]
+    },
+    preparationStatus: "prepared",
+  },
+  {
+    id: "minor-illusion-phb",
+    name: "Minor Illusion",
+    source: "PHB",
+    level: 0,
+    school: "I",
+    time: [{ number: 1, unit: "action" }],
+    range: { type: "point", distance: { type: "feet", amount: 30 } },
+    components: { s: true, m: "a bit of fleece" },
+    duration: [{ type: "timed", duration: { type: "minute", amount: 1 } }],
+    entries: [
+      "You create a sound or an image of an object within range that lasts for the duration. The illusion also ends if you dismiss it as an action or cast this spell again.",
+      "If you create a sound, its volume can range from a whisper to a scream. If you create an image of an object, it must be no larger than a 5-foot cube. Physical interaction with the image reveals it to be an illusion, because things can pass through it."
+    ],
+    classes: {
+      fromClassList: [{ name: "Wizard", source: "PHB" }, { name: "Sorcerer", source: "PHB" }, { name: "Bard", source: "PHB" }, { name: "Warlock", source: "PHB" }]
+    },
+    preparationStatus: "unprepared",
+  },
+  {
+    id: "ray-of-frost-phb",
+    name: "Ray of Frost",
+    source: "PHB",
+    level: 0,
+    school: "V",
+    time: [{ number: 1, unit: "action" }],
+    range: { type: "point", distance: { type: "feet", amount: 60 } },
+    components: { v: true, s: true },
+    duration: [{ type: "instant" }],
+    entries: [
+      "A frigid beam of blue-white light streaks toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes {@damage 1d8} Cold damage, and its speed is reduced by 10 feet until the start of your next turn."
+    ],
+    damageInflict: ["cold"],
+    classes: {
+      fromClassList: [{ name: "Wizard", source: "PHB" }, { name: "Sorcerer", source: "PHB" }, { name: "Artificer", source: "TCE" }]
+    },
+    preparationStatus: "unprepared",
+  },
+  {
     id: "shield-phb",
     name: "Shield",
     source: "PHB",

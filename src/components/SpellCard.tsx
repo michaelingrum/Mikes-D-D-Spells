@@ -21,6 +21,7 @@ interface SpellCardProps {
   hasSlotsAvailable: boolean;
   isConcentrating?: boolean;
   onStopConcentration?: () => void;
+  enableDailyCantrips?: boolean;
 }
 
 export const SpellCard: React.FC<SpellCardProps> = ({
@@ -33,6 +34,7 @@ export const SpellCard: React.FC<SpellCardProps> = ({
   hasSlotsAvailable,
   isConcentrating,
   onStopConcentration,
+  enableDailyCantrips = true,
 }) => {
   const school = getSchoolInfo(spell.school);
   const durationInfo = formatDuration(spell.duration);
@@ -56,7 +58,7 @@ export const SpellCard: React.FC<SpellCardProps> = ({
 
   const isCantrip = spell.level === 0;
   const isPrepared = spell.preparationStatus === 'prepared';
-  const isAlwaysAvailable = isCantrip || spell.preparationStatus === 'always_available';
+  const isAlwaysAvailable = spell.preparationStatus === 'always_available';
 
   return (
     <div
@@ -66,10 +68,8 @@ export const SpellCard: React.FC<SpellCardProps> = ({
           ? 'border-amber-500/80 ring-2 ring-amber-500/60 shadow-[0_0_18px_rgba(245,158,11,0.22)] bg-[#1b150c]'
           : isPrepared
           ? 'border-l-4 border-l-[#c5a059] border-zinc-800'
-          : isAlwaysAvailable && !isCantrip
-          ? 'border-l-4 border-l-[#c5a059]/70 border-zinc-800'
-          : isCantrip
-          ? 'border-l-4 border-l-[#c5a059]/40 border-zinc-800'
+          : isAlwaysAvailable
+          ? 'border-l-4 border-l-amber-500/70 border-zinc-800'
           : 'border-l-4 border-l-transparent border-zinc-800/80 opacity-75 hover:opacity-100'
       }`}
     >
@@ -192,7 +192,7 @@ export const SpellCard: React.FC<SpellCardProps> = ({
       {/* Bottom Action Footer */}
       <div className="pt-2 flex items-center justify-between gap-2 border-t border-zinc-800/80">
         {/* Preparation Status Toggle Button */}
-        {isCantrip ? (
+        {isCantrip && !enableDailyCantrips ? (
           <div className="flex items-center gap-1.5 text-xs text-[#c5a059] font-medium">
             <span className="w-2 h-2 rounded-full bg-[#c5a059]" />
             <span className="text-[11px] uppercase tracking-wider font-semibold">At Will</span>
@@ -210,30 +210,38 @@ export const SpellCard: React.FC<SpellCardProps> = ({
                 ? 'bg-zinc-900 border-amber-500/50 text-amber-300 hover:bg-zinc-800'
                 : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
             }`}
-            title="Click to cycle: Prepared → Always Available → Unprepared"
+          title={
+            isCantrip
+              ? isAlwaysAvailable
+                ? 'Fixed Cantrip (Always Ready). Click to cycle: Prepared → Always Available → Unprepared'
+                : isPrepared
+                ? 'Daily Prepared Cantrip. Click to cycle: Prepared → Always Available → Unprepared'
+                : 'Unprepared Cantrip (In Reserve). Click to cycle: Prepared → Always Available → Unprepared'
+              : 'Click to cycle: Prepared → Always Available → Unprepared'
+          }
+        >
+          {/* Signature circular indicator pip matching Sophisticated Dark design */}
+          <span
+            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+              isPrepared
+                ? 'border-[#c5a059] bg-[#c5a059]/20'
+                : isAlwaysAvailable
+                ? 'border-amber-400 bg-amber-400/20'
+                : 'border-zinc-700 bg-zinc-800'
+            }`}
           >
-            {/* Signature circular indicator pip matching Sophisticated Dark design */}
-            <span
-              className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                isPrepared
-                  ? 'border-[#c5a059] bg-[#c5a059]/20'
-                  : isAlwaysAvailable
-                  ? 'border-amber-400 bg-amber-400/20'
-                  : 'border-zinc-700 bg-zinc-800'
-              }`}
-            >
-              {isPrepared ? (
-                <span className="w-2 h-2 rounded-full bg-[#c5a059]" />
-              ) : isAlwaysAvailable ? (
-                <span className="text-[8px] text-amber-300">★</span>
-              ) : null}
-            </span>
+            {isPrepared ? (
+              <span className="w-2 h-2 rounded-full bg-[#c5a059]" />
+            ) : isAlwaysAvailable ? (
+              <span className="text-[8px] text-amber-300">★</span>
+            ) : null}
+          </span>
 
-            <span className="text-[11px] uppercase tracking-wider">
-              {isPrepared ? 'Prepared' : isAlwaysAvailable ? 'Always Avail' : 'Unprepared'}
-            </span>
-          </button>
-        )}
+          <span className="text-[11px] uppercase tracking-wider">
+            {isPrepared ? 'Prepared' : isAlwaysAvailable ? 'Always Avail' : 'Unprepared'}
+          </span>
+        </button>
+      )}
 
         {/* Quick Cast Button */}
         <button

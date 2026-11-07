@@ -8,6 +8,8 @@ interface LongRestModalProps {
   features?: CharacterFeature[];
   onClose: () => void;
   onConfirmRest: () => void;
+  enableDailyCantrips?: boolean;
+  enableFeaturesTracker?: boolean;
 }
 
 export const LongRestModal: React.FC<LongRestModalProps> = ({
@@ -15,6 +17,8 @@ export const LongRestModal: React.FC<LongRestModalProps> = ({
   features = [],
   onClose,
   onConfirmRest,
+  enableDailyCantrips = true,
+  enableFeaturesTracker = true,
 }) => {
   // Count how many slots will be recovered
   let slotsToRecover = 0;
@@ -83,17 +87,29 @@ export const LongRestModal: React.FC<LongRestModalProps> = ({
           </div>
 
           {/* Features to restore */}
-          <div className="flex items-center justify-between text-xs text-zinc-300 font-mono pt-1.5 border-t border-zinc-800">
-            <span className="flex items-center gap-1.5 text-zinc-300 font-sans">
-              <Layers className="w-3.5 h-3.5 text-[#dfc384]" />
-              Limited-Use Features:
-            </span>
-            <strong className="text-[#dfc384] font-mono text-sm">
-              {recoveringFeatures.length > 0
-                ? `Refill ${recoveringFeatures.length} active`
-                : 'All at Max'}
-            </strong>
-          </div>
+          {enableFeaturesTracker && (
+            <div className="flex items-center justify-between text-xs text-zinc-300 font-mono pt-1.5 border-t border-zinc-800">
+              <span className="flex items-center gap-1.5 text-zinc-300 font-sans">
+                <Layers className="w-3.5 h-3.5 text-[#dfc384]" />
+                Limited-Use Features:
+              </span>
+              <strong className="text-[#dfc384] font-mono text-sm">
+                {recoveringFeatures.length > 0
+                  ? `Refill ${recoveringFeatures.length} active`
+                  : 'All at Max'}
+              </strong>
+            </div>
+          )}
+
+          {enableDailyCantrips && (
+            <div className="flex items-center justify-between text-xs text-zinc-400 pt-1.5 border-t border-zinc-800">
+              <span className="flex items-center gap-1.5 text-zinc-300 font-sans">
+                <Sparkles className="w-3.5 h-3.5 text-[#c5a059]" />
+                Daily Cantrip Choice:
+              </span>
+              <span className="text-[#dfc384] font-medium text-[11px]">Ready to Swap for New Day</span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-xs text-zinc-400 pt-1.5 border-t border-zinc-800">
             <span className="flex items-center gap-1.5">

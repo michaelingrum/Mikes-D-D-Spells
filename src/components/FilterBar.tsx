@@ -101,11 +101,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   const prepCounts = {
     all: spells.length,
-    prepared: spells.filter((s) => s.level > 0 && s.preparationStatus === 'prepared').length,
-    always_available: spells.filter(
-      (s) => s.level === 0 || s.preparationStatus === 'always_available'
-    ).length,
-    unprepared: spells.filter((s) => s.level > 0 && s.preparationStatus === 'unprepared').length,
+    prepared: spells.filter((s) => s.preparationStatus === 'prepared').length,
+    always_available: spells.filter((s) => s.preparationStatus === 'always_available').length,
+    unprepared: spells.filter((s) => s.preparationStatus === 'unprepared').length,
     favorites: spells.filter((s) => s.isFavorite).length,
     rituals: spells.filter((s) => s.meta?.ritual).length,
   };

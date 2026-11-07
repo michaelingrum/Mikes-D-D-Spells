@@ -1,6 +1,6 @@
-import { Check, Flame, Layers, Minus, Plus, RefreshCw, Sparkles, User, Wand2, X } from 'lucide-react';
-import React, { useState } from 'react';
-import { AbilityScore, CasterClass, CharacterProfile, SpellSlotState } from '../types';
+import { Check, Flame, Layers, Minus, Plus, RefreshCw, Sliders, Sparkles, User, Users, Wand2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AbilityScore, CasterClass, CharacterProfile, CharacterRecord, SpellSlotState } from '../types';
 import {
   calculateMaxPrepared,
   getAbilityModifier,
@@ -12,6 +12,10 @@ interface CharacterModalProps {
   profile: CharacterProfile;
   slots: SpellSlotState;
   featuresCount?: number;
+  characters?: CharacterRecord[];
+  activeCharacterId?: string;
+  onSwitchCharacter?: (id: string) => void;
+  onOpenCharacterSwitcher?: () => void;
   onClose: () => void;
   onUpdateProfile: (profile: Partial<CharacterProfile>) => void;
   onApplyPresetSlots: (casterClass: CasterClass, level: number) => void;
@@ -38,6 +42,10 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   profile,
   slots,
   featuresCount = 0,
+  characters,
+  activeCharacterId,
+  onSwitchCharacter,
+  onOpenCharacterSwitcher,
   onClose,
   onUpdateProfile,
   onApplyPresetSlots,
@@ -51,6 +59,23 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   const [abilityScore, setAbilityScore] = useState<number>(profile.abilityScoreValue);
   const [dcBonus, setDcBonus] = useState<number>(profile.dcBonus || 0);
   const [attackBonus, setAttackBonus] = useState<number>(profile.attackBonus || 0);
+  const [customPreparedCantripsMax, setCustomPreparedCantripsMax] = useState<number>(profile.customPreparedCantripsMax ?? 1);
+  const [enableDailyCantrips, setEnableDailyCantrips] = useState<boolean>(profile.enableDailyCantrips ?? true);
+  const [enableFeaturesTracker, setEnableFeaturesTracker] = useState<boolean>(profile.enableFeaturesTracker ?? true);
+
+  // Sync internal state when active character / profile changes
+  useEffect(() => {
+    setName(profile.name);
+    setCharacterClass(profile.characterClass);
+    setLevel(profile.level);
+    setAbility(profile.spellcastingAbility);
+    setAbilityScore(profile.abilityScoreValue);
+    setDcBonus(profile.dcBonus || 0);
+    setAttackBonus(profile.attackBonus || 0);
+    setCustomPreparedCantripsMax(profile.customPreparedCantripsMax ?? 1);
+    setEnableDailyCantrips(profile.enableDailyCantrips ?? true);
+    setEnableFeaturesTracker(profile.enableFeaturesTracker ?? true);
+  }, [profile]);
 
   const mod = getAbilityModifier(abilityScore);
   const prof = getProficiencyBonus(level);
@@ -70,6 +95,9 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
       proficiencyBonus: prof,
       dcBonus,
       attackBonus,
+      customPreparedCantripsMax,
+      enableDailyCantrips,
+      enableFeaturesTracker,
     });
     onClose();
   };
@@ -113,33 +141,37 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto space-y-4 pr-1">
-          {/* Features Setup Link Banner */}
-          {onOpenFeatures && (
-            <div className="p-3 bg-[#171719] border border-[#c5a059]/40 rounded-xl flex items-center justify-between gap-3 shadow-md">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#c5a059]/20 border border-[#c5a059]/40 flex items-center justify-center">
-                  <Layers className="w-4 h-4 text-[#dfc384]" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-serif font-bold text-[#dfc384]">
-                    Limited-Use Features & Feats
-                  </h4>
-                  <p className="text-[11px] text-zinc-400">
-                    {featuresCount} active (Flash of Genius, Metamagic, Lay on Hands...)
-                  </p>
-                </div>
+          {/* Character Quick Switcher Bar */}
+          {characters && characters.length > 0 && (
+            <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Users className="w-4 h-4 text-[#c5a059] flex-shrink-0" />
+                <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold flex-shrink-0">
+                  Switch Hero:
+                </span>
+                <select
+                  value={activeCharacterId}
+                  onChange={(e) => onSwitchCharacter && onSwitchCharacter(e.target.value)}
+                  className="bg-black/80 border border-zinc-700 hover:border-[#c5a059]/60 text-[#dfc384] text-xs font-semibold rounded-lg px-2.5 py-1 focus:outline-none focus:border-[#c5a059] truncate flex-1 cursor-pointer"
+                >
+                  {characters.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.profile.name || 'Unnamed'} (Lvl {c.profile.level} {c.profile.characterClass})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenFeatures();
-                }}
-                className="px-3 py-1.5 rounded-lg bg-[#c5a059] hover:bg-[#d4af37] text-black text-xs font-bold transition-all flex items-center gap-1 active:scale-95"
-              >
-                <span>Manage</span>
-              </button>
+              {onOpenCharacterSwitcher && (
+                <button
+                  type="button"
+                  onClick={onOpenCharacterSwitcher}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-[#c5a059]/20 border border-zinc-700 hover:border-[#c5a059]/40 text-[#c5a059] hover:text-[#dfc384] font-medium transition-colors flex-shrink-0"
+                  title="Open full Character Roster to add, duplicate, or delete heroes"
+                >
+                  Roster...
+                </button>
+              )}
             </div>
           )}
 
@@ -308,6 +340,154 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                   ? `HalfLv+Mod`
                   : 'Known Spells'}
               </span>
+            </div>
+          </div>
+
+          {/* Optional Character Modules & Feature Toggles */}
+          <div className="p-3.5 rounded-xl bg-[#161616] border border-zinc-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Sliders className="w-4 h-4 text-[#c5a059]" />
+                <span className="text-xs font-bold text-[#c5a059] uppercase tracking-wider font-mono">
+                  Optional Character Modules
+                </span>
+              </div>
+              <span className="text-[10px] text-zinc-500 font-mono">Toggle features on/off</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* 1. Daily Swappable Cantrips Toggle */}
+              <div className="p-3 rounded-lg bg-zinc-900/90 border border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#dfc384]" />
+                      <span className="text-xs font-bold text-zinc-200">
+                        Daily Swappable Cantrips
+                      </span>
+                      <span
+                        className={`text-[9px] font-mono px-1.5 py-0.2 rounded border font-semibold ${
+                          enableDailyCantrips
+                            ? 'bg-emerald-950/80 border-emerald-700/60 text-emerald-300'
+                            : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+                        }`}
+                      >
+                        {enableDailyCantrips ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                      Prepare swappable cantrips once per day (Cantrip Formulas, Cantrip Versatility, etc.). When disabled, all cantrips cast at will without preparation tracking.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enableDailyCantrips}
+                    onClick={() => setEnableDailyCantrips((prev) => !prev)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      enableDailyCantrips ? 'bg-[#c5a059]' : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full shadow ring-0 transition duration-200 ease-in-out ${
+                        enableDailyCantrips ? 'translate-x-5 bg-black' : 'translate-x-0 bg-zinc-500'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Stepper only shown if enabled */}
+                {enableDailyCantrips && (
+                  <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-xs">
+                    <span className="text-[11px] text-[#dfc384] font-medium font-mono">
+                      Daily Cantrip Choices:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCustomPreparedCantripsMax((prev) => Math.max(1, prev - 1))}
+                        className="w-5 h-5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center text-xs active:scale-95"
+                        title="Decrease daily choices"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="text-xs font-bold text-[#dfc384] font-mono min-w-[16px] text-center">
+                        {customPreparedCantripsMax}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCustomPreparedCantripsMax((prev) => Math.min(10, prev + 1))}
+                        className="w-5 h-5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center text-xs active:scale-95"
+                        title="Increase daily choices"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Limited-Use Features & Resource Trackers Toggle */}
+              <div className="p-3 rounded-lg bg-zinc-900/90 border border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-[#dfc384]" />
+                      <span className="text-xs font-bold text-zinc-200">
+                        Limited-Use Features Tracker
+                      </span>
+                      <span
+                        className={`text-[9px] font-mono px-1.5 py-0.2 rounded border font-semibold ${
+                          enableFeaturesTracker
+                            ? 'bg-emerald-950/80 border-emerald-700/60 text-emerald-300'
+                            : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+                        }`}
+                      >
+                        {enableFeaturesTracker ? `${featuresCount} Active` : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                      Shows tracker strip on dashboard for class abilities, sorcery/ki points, lay on hands pools, dice, and charges.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enableFeaturesTracker}
+                    onClick={() => setEnableFeaturesTracker((prev) => !prev)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      enableFeaturesTracker ? 'bg-[#c5a059]' : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full shadow ring-0 transition duration-200 ease-in-out ${
+                        enableFeaturesTracker ? 'translate-x-5 bg-black' : 'translate-x-0 bg-zinc-500'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Quick manage link if enabled */}
+                {enableFeaturesTracker && onOpenFeatures && (
+                  <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-xs">
+                    <span className="text-[11px] text-zinc-400">
+                      {featuresCount} {featuresCount === 1 ? 'tracker' : 'trackers'} configured
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenFeatures();
+                      }}
+                      className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-[#dfc384] text-[11px] font-semibold transition-colors"
+                    >
+                      Manage Trackers →
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

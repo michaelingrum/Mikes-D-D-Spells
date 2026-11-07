@@ -70,7 +70,7 @@ export const AddSpellModal: React.FC<AddSpellModalProps> = ({
             },
           ]
         : undefined,
-      preparationStatus: level === 0 ? 'always_available' : prepStatus,
+      preparationStatus: prepStatus,
     };
 
     onAddSpell(newSpell);
@@ -166,14 +166,19 @@ export const AddSpellModal: React.FC<AddSpellModalProps> = ({
                 Initial Status:
               </label>
               <select
-                disabled={level === 0}
                 value={prepStatus}
                 onChange={(e) => setPrepStatus(e.target.value as PreparationStatus)}
-                className="w-full px-3 py-2 bg-[#161616] border border-zinc-700 rounded-xl text-sm text-zinc-100 disabled:opacity-50 focus:outline-none focus:border-[#c5a059]"
+                className="w-full px-3 py-2 bg-[#161616] border border-zinc-700 rounded-xl text-sm text-zinc-100 focus:outline-none focus:border-[#c5a059]"
               >
-                <option value="prepared">Prepared</option>
-                <option value="always_available">Always Available</option>
-                <option value="unprepared">Unprepared (Spellbook)</option>
+                <option value="always_available">
+                  {level === 0 ? 'Always Available (Fixed Cantrip)' : 'Always Available (Domain/Item)'}
+                </option>
+                <option value="prepared">
+                  {level === 0 ? 'Prepared (Daily Chosen Cantrip)' : 'Prepared'}
+                </option>
+                <option value="unprepared">
+                  {level === 0 ? 'In Reserve (Available to Swap)' : 'Unprepared (Spellbook)'}
+                </option>
               </select>
             </div>
           </div>

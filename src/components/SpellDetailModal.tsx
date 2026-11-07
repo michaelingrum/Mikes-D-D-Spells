@@ -41,6 +41,7 @@ interface SpellDetailModalProps {
   isConcentrating?: boolean;
   onStartConcentration?: (spell: Spell) => void;
   onStopConcentration?: () => void;
+  enableDailyCantrips?: boolean;
 }
 
 export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
@@ -56,6 +57,7 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
   isConcentrating,
   onStartConcentration,
   onStopConcentration,
+  enableDailyCantrips = true,
 }) => {
   if (!spell) return null;
 
@@ -74,7 +76,7 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
 
   const isCantrip = spell.level === 0;
   const isPrepared = spell.preparationStatus === 'prepared';
-  const isAlwaysAvailable = isCantrip || spell.preparationStatus === 'always_available';
+  const isAlwaysAvailable = spell.preparationStatus === 'always_available';
 
   // Extract class names
   const classNames: string[] = [];
@@ -298,9 +300,16 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
         {/* Bottom Actions Toolbar */}
         <div className="p-4 border-t border-zinc-800 bg-[#161616] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Preparation Status Picker */}
-          {!isCantrip ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-zinc-500 mr-1 hidden xs:inline uppercase tracking-wider font-mono">Status:</span>
+          {isCantrip && !enableDailyCantrips ? (
+            <div className="flex items-center gap-1.5 text-xs text-[#c5a059] font-medium">
+              <span className="w-2 h-2 rounded-full bg-[#c5a059]" />
+              <span>Cantrip is always ready to cast (At Will)</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-zinc-500 mr-1 hidden xs:inline uppercase tracking-wider font-mono">
+                Status:
+              </span>
               <button
                 onClick={() => onSetPrep(spell.id, 'prepared')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1 ${
@@ -308,6 +317,7 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
                     ? 'bg-[#c5a059] text-black shadow-md font-bold'
                     : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
                 }`}
+                title={isCantrip ? 'Prepared for today via daily cantrip choice' : 'Prepared spell'}
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Prepared</span>
@@ -320,9 +330,10 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
                     ? 'bg-[#c5a059] text-black shadow-md font-bold'
                     : 'bg-zinc-900 text-amber-300 hover:bg-zinc-800 border border-amber-900/30'
                 }`}
+                title={isCantrip ? 'Fixed cantrip (always available, cannot be swapped)' : 'Always available (does not count against prepared limit)'}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Always Avail</span>
+                <span>{isCantrip ? 'Always Avail (Fixed)' : 'Always Avail'}</span>
               </button>
 
               <button
@@ -332,13 +343,10 @@ export const SpellDetailModal: React.FC<SpellDetailModalProps> = ({
                     ? 'bg-zinc-700 text-white shadow-md'
                     : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 border border-zinc-800'
                 }`}
+                title={isCantrip ? 'In reserve in your spellbook (ready to be prepared when swapping)' : 'Unprepared spell'}
               >
-                Unprepared
+                {isCantrip ? 'In Reserve' : 'Unprepared'}
               </button>
-            </div>
-          ) : (
-            <div className="text-xs text-[#c5a059] font-medium">
-              Cantrip is always ready to cast
             </div>
           )}
 

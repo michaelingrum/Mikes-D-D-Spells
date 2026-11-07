@@ -8,6 +8,7 @@ interface ShortRestModalProps {
   features?: CharacterFeature[];
   onClose: () => void;
   onConfirmRest: () => void;
+  enableFeaturesTracker?: boolean;
 }
 
 export const ShortRestModal: React.FC<ShortRestModalProps> = ({
@@ -15,6 +16,7 @@ export const ShortRestModal: React.FC<ShortRestModalProps> = ({
   features = [],
   onClose,
   onConfirmRest,
+  enableFeaturesTracker = true,
 }) => {
   // Count how many Pact slots will be recovered
   const pactSlotsToRecover = slots.pact ? slots.pact.max - slots.pact.current : 0;
@@ -75,41 +77,45 @@ export const ShortRestModal: React.FC<ShortRestModalProps> = ({
           ) : null}
 
           {/* Features to restore */}
-          <div className="flex items-center justify-between text-xs text-zinc-300 font-mono">
-            <span className="flex items-center gap-1.5 text-zinc-300 font-sans">
-              <Layers className="w-3.5 h-3.5 text-amber-400" />
-              Short-Rest Features:
-            </span>
-            <strong className="text-amber-300 font-mono text-sm">
-              {recoveringFeatures.length > 0
-                ? `Refill ${recoveringFeatures.length}`
-                : shortRestFeatures.length > 0
-                ? 'All Ready'
-                : 'None configured'}
-            </strong>
-          </div>
-
-          {/* List feature names */}
-          {shortRestFeatures.length > 0 && (
-            <div className="pt-2 border-t border-zinc-800 space-y-1">
-              <span className="text-[10px] uppercase font-mono text-zinc-500 tracking-wider block">
-                Short-Rest Trackers
-              </span>
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {shortRestFeatures.map((f) => (
-                  <span
-                    key={f.id}
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                      f.current < f.max
-                        ? 'bg-amber-950/50 border-amber-700/50 text-amber-300'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-                    }`}
-                  >
-                    {f.name} ({f.current} &rarr; {f.max})
-                  </span>
-                ))}
+          {enableFeaturesTracker && (
+            <>
+              <div className="flex items-center justify-between text-xs text-zinc-300 font-mono">
+                <span className="flex items-center gap-1.5 text-zinc-300 font-sans">
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  Short-Rest Features:
+                </span>
+                <strong className="text-amber-300 font-mono text-sm">
+                  {recoveringFeatures.length > 0
+                    ? `Refill ${recoveringFeatures.length}`
+                    : shortRestFeatures.length > 0
+                    ? 'All Ready'
+                    : 'None configured'}
+                </strong>
               </div>
-            </div>
+
+              {/* List feature names */}
+              {shortRestFeatures.length > 0 && (
+                <div className="pt-2 border-t border-zinc-800 space-y-1">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 tracking-wider block">
+                    Short-Rest Trackers
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {shortRestFeatures.map((f) => (
+                      <span
+                        key={f.id}
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                          f.current < f.max
+                            ? 'bg-amber-950/50 border-amber-700/50 text-amber-300'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400'
+                        }`}
+                      >
+                        {f.name} ({f.current} &rarr; {f.max})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <div className="flex items-center justify-between text-xs text-zinc-500 pt-1.5 border-t border-zinc-800">

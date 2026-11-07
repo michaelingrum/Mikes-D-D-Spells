@@ -143,9 +143,34 @@ export interface CharacterProfile {
   abilityScoreValue: number; // e.g. 18 (+4)
   proficiencyBonus: number; // e.g. +3
   customPreparedMax?: number;
+  customPreparedCantripsMax?: number; // e.g. 1 for choose any cantrip once per day
   dcBonus?: number; // e.g. +1, +2, +3 from Arcane Grimoire, Robe of the Archmagi, etc.
   attackBonus?: number; // e.g. +1, +2, +3 from Wand of the War Mage, etc.
   notes?: string;
+  enableDailyCantrips?: boolean; // Toggle daily cantrip preparation & swap UI
+  enableFeaturesTracker?: boolean; // Toggle limited-use features and resource tracking
+}
+
+export interface CharacterRecord {
+  id: string;
+  profile: CharacterProfile;
+  spells: Spell[];
+  slots: SpellSlotState;
+  features: CharacterFeature[];
+  activeConcentration: ActiveConcentration | null;
+  createdAt: number;
+  lastPlayedAt: number;
+}
+
+export interface DatabaseBackup {
+  format: 'dnd-spellbook-backup-v1';
+  version: number;
+  exportedAt: string;
+  timestamp: number;
+  activeCharacterId: string;
+  charactersCount: number;
+  totalSpellsCount: number;
+  characters: CharacterRecord[];
 }
 
 export interface ActiveConcentration {

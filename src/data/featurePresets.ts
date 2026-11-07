@@ -15,6 +15,17 @@ export interface FeaturePresetTemplate {
 
 export const FEATURE_PRESETS: FeaturePresetTemplate[] = [
   {
+    name: 'Daily Cantrip Choice',
+    source: 'Class Feature / Ability',
+    category: 'class',
+    description: 'Whenever you finish a long rest, you can replace or choose one cantrip from your spell list to have prepared for the day.',
+    resetType: 'long',
+    displayType: 'pips',
+    unitLabel: 'Choice',
+    defaultMax: 1,
+    colorTheme: 'gold',
+  },
+  {
     name: 'Flash of Genius',
     source: 'Artificer (Level 7)',
     category: 'class',

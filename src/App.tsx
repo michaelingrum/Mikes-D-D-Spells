@@ -7,6 +7,7 @@ import {
   AlertCircle,
   BookOpen,
   CheckCircle2,
+  Database,
   Download,
   Filter,
   Flame,
@@ -16,12 +17,15 @@ import {
   RotateCcw,
   Sparkles,
   Upload,
+  Wand2,
   Zap,
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AddSpellModal } from './components/AddSpellModal';
 import { CastSpellModal } from './components/CastSpellModal';
 import { CharacterModal } from './components/CharacterModal';
+import { CharacterSwitcherModal } from './components/CharacterSwitcherModal';
+import { DailyCantripModal } from './components/DailyCantripModal';
 import { FeaturesManagerModal } from './components/FeaturesManagerModal';
 import { FeaturesTrackerStrip } from './components/FeaturesTrackerStrip';
 import { FilterBar } from './components/FilterBar';
@@ -53,6 +57,7 @@ export default function App() {
     stopConcentration,
     togglePreparation,
     setPreparationStatus,
+    selectDailyCantrip,
     toggleFavorite,
     castSpell,
     castPactSlot,
@@ -75,6 +80,16 @@ export default function App() {
     updateFeature,
     deleteFeature,
     reorderFeatures,
+    // Multi-Character Roster
+    characters,
+    activeCharacterId,
+    switchCharacter,
+    createCharacter,
+    duplicateCharacter,
+    deleteCharacter,
+    // Database Backup & Restore
+    exportFullDatabase,
+    importFullDatabase,
   } = useSpellbook();
 
   // Filter & Search State
@@ -90,7 +105,16 @@ export default function App() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState<
-    'character' | 'import' | 'addSpell' | 'longRest' | 'shortRest' | 'install' | 'features' | null
+    | 'character'
+    | 'import'
+    | 'addSpell'
+    | 'longRest'
+    | 'shortRest'
+    | 'install'
+    | 'features'
+    | 'dailyCantrip'
+    | 'characterSwitcher'
+    | null
   >(null);
   const [detailSpell, setDetailSpell] = useState<Spell | null>(null);
   const [castingSpell, setCastingSpell] = useState<Spell | null>(null);
@@ -171,6 +195,18 @@ export default function App() {
     return spells.filter((s) => s.level > 0 && s.preparationStatus === 'prepared').length;
   }, [spells]);
 
+  const cantripsPreparedCount = useMemo(() => {
+    return spells.filter((s) => s.level === 0 && s.preparationStatus === 'prepared').length;
+  }, [spells]);
+
+  const cantripsAlwaysCount = useMemo(() => {
+    return spells.filter((s) => s.level === 0 && s.preparationStatus === 'always_available').length;
+  }, [spells]);
+
+  const cantripsUnprepCount = useMemo(() => {
+    return spells.filter((s) => s.level === 0 && s.preparationStatus === 'unprepared').length;
+  }, [spells]);
+
   const maxPreparedLimit = useMemo(() => {
     return calculateMaxPrepared(profile.characterClass, profile.level, profile.abilityScoreValue);
   }, [profile]);
@@ -233,13 +269,13 @@ export default function App() {
         if (filters.preparations.length > 0) {
           const matchesPrep = filters.preparations.some((p) => {
             if (p === 'prepared') {
-              return spell.level > 0 && spell.preparationStatus === 'prepared';
+              return spell.preparationStatus === 'prepared';
             }
             if (p === 'always_available') {
-              return spell.level === 0 || spell.preparationStatus === 'always_available';
+              return spell.preparationStatus === 'always_available';
             }
             if (p === 'unprepared') {
-              return spell.level > 0 && spell.preparationStatus === 'unprepared';
+              return spell.preparationStatus === 'unprepared';
             }
             if (p === 'favorites') {
               return Boolean(spell.isFavorite);
@@ -369,7 +405,9 @@ export default function App() {
         profile={profile}
         slots={slots}
         featuresCount={features.length}
+        charactersCount={characters.length}
         onOpenCharacter={() => setActiveModal('character')}
+        onOpenCharacterSwitcher={() => setActiveModal('characterSwitcher')}
         onOpenFeatures={() => setActiveModal('features')}
         onOpenImport={() => setActiveModal('import')}
         onOpenAddSpell={() => setActiveModal('addSpell')}
@@ -379,6 +417,7 @@ export default function App() {
         isStandalone={isStandalone}
         totalPrepared={totalPreparedCount}
         maxPrepared={maxPreparedLimit}
+        preparedCantripsCount={cantripsPreparedCount}
       />
 
       {/* Interactive Spell Slot Tracker */}
@@ -402,19 +441,21 @@ export default function App() {
       />
 
       {/* Interactive Features & Limited-Use Tracker Strip */}
-      <FeaturesTrackerStrip
-        features={features}
-        onAdjustFeature={adjustFeature}
-        onSetFeatureCurrent={setFeatureCurrent}
-        onResetFeature={(id) => {
-          resetFeature(id);
-          const f = features.find((feat) => feat.id === id);
-          showToast(`Refilled ${f?.name || 'feature'} to max!`, 'success');
-        }}
-        onOpenFeaturesManager={() => setActiveModal('features')}
-        onReorderFeatures={reorderFeatures}
-        onTakeShortRest={() => setActiveModal('shortRest')}
-      />
+      {profile.enableFeaturesTracker !== false && (
+        <FeaturesTrackerStrip
+          features={features}
+          onAdjustFeature={adjustFeature}
+          onSetFeatureCurrent={setFeatureCurrent}
+          onResetFeature={(id) => {
+            resetFeature(id);
+            const f = features.find((feat) => feat.id === id);
+            showToast(`Refilled ${f?.name || 'feature'} to max!`, 'success');
+          }}
+          onOpenFeaturesManager={() => setActiveModal('features')}
+          onReorderFeatures={reorderFeatures}
+          onTakeShortRest={() => setActiveModal('shortRest')}
+        />
+      )}
 
       {/* Filter and Search Bar */}
       <FilterBar
@@ -491,8 +532,45 @@ export default function App() {
                       </span>
                     </div>
 
-                    {/* Quick Slot Count indicator for this level */}
-                    {slotInfo && slotInfo.max > 0 && (
+                    {/* Quick Cantrip controls or Slot Count indicator for this level */}
+                    {groupLevel === 0 ? (
+                      profile.enableDailyCantrips !== false ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Status counts badges */}
+                          <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono">
+                            {cantripsPreparedCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-[#c5a059]/20 border border-[#c5a059]/40 text-[#c5a059] font-bold">
+                                {cantripsPreparedCount} Prepared
+                              </span>
+                            )}
+                            {cantripsAlwaysCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-amber-900/40 text-amber-300">
+                                {cantripsAlwaysCount} Fixed
+                              </span>
+                            )}
+                            {cantripsUnprepCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
+                                {cantripsUnprepCount} Reserve
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick Action Button to Choose Daily Cantrip */}
+                          <button
+                            onClick={() => setActiveModal('dailyCantrip')}
+                            className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-[#c5a059]/40 hover:border-[#c5a059] text-[#c5a059] hover:text-[#dfc384] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                            title="Choose or swap your daily prepared cantrip (once per day)"
+                          >
+                            <Wand2 className="w-3.5 h-3.5" />
+                            <span>Choose Daily Cantrip</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider">
+                          At-Will Spells
+                        </span>
+                      )
+                    ) : slotInfo && slotInfo.max > 0 ? (
                       <div className="flex items-center gap-1.5 text-xs font-mono bg-zinc-900 px-2.5 py-0.5 rounded-lg border border-zinc-800">
                         <span className="text-zinc-400">Slots:</span>
                         <span
@@ -503,7 +581,7 @@ export default function App() {
                           {slotInfo.current}/{slotInfo.max}
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Cards Grid */}
@@ -512,6 +590,7 @@ export default function App() {
                       <SpellCard
                         key={spell.id}
                         spell={spell}
+                        enableDailyCantrips={profile.enableDailyCantrips !== false}
                         onSelect={(s) => setDetailSpell(s)}
                         onTogglePrep={(id) => {
                           togglePreparation(id);
@@ -644,10 +723,10 @@ export default function App() {
         <button
           onClick={() => setActiveModal('import')}
           className="py-2 px-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-semibold flex items-center gap-1"
-          title="Import / Export"
+          title="Backup Database & Import"
         >
-          <Upload className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="hidden xs:inline">Import</span>
+          <Database className="w-3.5 h-3.5 text-[#c5a059]" />
+          <span className="hidden xs:inline">Backup</span>
         </button>
 
         <button
@@ -690,6 +769,14 @@ export default function App() {
           profile={profile}
           slots={slots}
           featuresCount={features.length}
+          characters={characters}
+          activeCharacterId={activeCharacterId}
+          onSwitchCharacter={(id) => {
+            switchCharacter(id);
+            const target = characters.find((c) => c.id === id);
+            showToast(`Switched to ${target ? target.profile.name : 'character'}!`, 'success');
+          }}
+          onOpenCharacterSwitcher={() => setActiveModal('characterSwitcher')}
           onClose={() => setActiveModal(null)}
           onUpdateProfile={(p) => {
             updateProfile(p);
@@ -701,6 +788,43 @@ export default function App() {
           }}
           onSetSlotMax={setSlotMax}
           onOpenFeatures={() => setActiveModal('features')}
+        />
+      )}
+
+      {/* 1.25 Character Roster Switcher Modal */}
+      {activeModal === 'characterSwitcher' && (
+        <CharacterSwitcherModal
+          characters={characters}
+          activeCharacterId={activeCharacterId}
+          onClose={() => setActiveModal(null)}
+          onSwitchCharacter={(id) => {
+            switchCharacter(id);
+            const target = characters.find((c) => c.id === id);
+            showToast(`Switched to ${target ? target.profile.name : 'character'}!`, 'success');
+          }}
+          onCreateCharacter={(opts) => {
+            const created = createCharacter(opts);
+            showToast(`Created ${created.profile.name || 'Hero'}!`, 'success');
+            return created;
+          }}
+          onDuplicateCharacter={(id, name) => {
+            const dup = duplicateCharacter(id, name);
+            if (dup) {
+              showToast(`Duplicated ${dup.profile.name}!`, 'success');
+            }
+            return dup;
+          }}
+          onDeleteCharacter={(id) => {
+            const res = deleteCharacter(id);
+            if (res.success) {
+              showToast(res.message, 'info');
+            } else {
+              showToast(res.message, 'error');
+            }
+            return res;
+          }}
+          onOpenCharacterSettings={() => setActiveModal('character')}
+          onOpenBackup={() => setActiveModal('import')}
         />
       )}
 
@@ -730,18 +854,31 @@ export default function App() {
         />
       )}
 
-      {/* 2. Import / Export JSON Modal */}
+      {/* 2. Import / Export JSON & Full Database Backup Modal */}
       {activeModal === 'import' && (
         <ImportModal
           onClose={() => setActiveModal(null)}
-          onImport={(json, mode) => {
+          characters={characters}
+          activeCharacterId={activeCharacterId}
+          onExportDatabase={exportFullDatabase}
+          onImportDatabase={(json, mode) => {
+            const res = importFullDatabase(json, mode);
+            if (res.success) {
+              showToast(res.message, 'success');
+            } else {
+              showToast(res.message, 'error');
+            }
+            return res;
+          }}
+          currentSpells={spells}
+          activeCharacterName={profile.name || 'Hero'}
+          onImportSpells={(json, mode) => {
             const res = importSpells(json, mode);
             if (res.count > 0) {
               showToast(`Imported ${res.count} spells successfully!`, 'success');
             }
             return res;
           }}
-          currentSpells={spells}
         />
       )}
 
@@ -761,6 +898,7 @@ export default function App() {
         <ShortRestModal
           slots={slots}
           features={features}
+          enableFeaturesTracker={profile.enableFeaturesTracker !== false}
           onClose={() => setActiveModal(null)}
           onConfirmRest={() => {
             takeShortRest();
@@ -774,11 +912,41 @@ export default function App() {
         <LongRestModal
           slots={slots}
           features={features}
+          enableDailyCantrips={profile.enableDailyCantrips !== false}
+          enableFeaturesTracker={profile.enableFeaturesTracker !== false}
           onClose={() => setActiveModal(null)}
           onConfirmRest={() => {
             takeLongRest();
             showToast('Long Rest completed! All spell slots and features replenished.', 'success');
           }}
+        />
+      )}
+
+      {/* 4.75. Choose Daily Cantrip Modal */}
+      {activeModal === 'dailyCantrip' && (
+        <DailyCantripModal
+          cantrips={spells.filter((s) => s.level === 0)}
+          onClose={() => setActiveModal(null)}
+          onSelectDailyCantrip={(id) => {
+            selectDailyCantrip(id);
+            const chosen = spells.find((s) => s.id === id);
+            showToast(`Prepared ${chosen ? chosen.name : 'cantrip'} for today!`, 'success');
+          }}
+          onSetPrep={(id, status) => {
+            setPreparationStatus(id, status);
+            const targetSpell = spells.find((s) => s.id === id);
+            if (targetSpell) {
+              const label =
+                status === 'always_available'
+                  ? 'Fixed (Always Avail)'
+                  : status === 'prepared'
+                  ? 'Daily Prepared'
+                  : 'In Reserve';
+              showToast(`Marked ${targetSpell.name} as ${label}`, 'info');
+            }
+          }}
+          onOpenAddSpell={() => setActiveModal('addSpell')}
+          onOpenSpellDetail={(spell) => setDetailSpell(spell)}
         />
       )}
 
@@ -810,6 +978,7 @@ export default function App() {
       {activeDetailSpell && (
         <SpellDetailModal
           spell={activeDetailSpell}
+          enableDailyCantrips={profile.enableDailyCantrips !== false}
           onClose={() => setDetailSpell(null)}
           onTogglePrep={(id) => togglePreparation(id)}
           onSetPrep={(id, status) => setPreparationStatus(id, status)}
